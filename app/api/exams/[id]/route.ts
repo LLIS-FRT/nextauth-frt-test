@@ -1,9 +1,9 @@
 import { protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { untis } from "@/lib/untis";
+import { getClasses } from "@/utils/classes";
 import { User, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { getClasses } from "../../classes/route";
 
 const getID_IAM = (req: NextRequest): { IAM: boolean, idOrIAM: string } => {
     const pathname = req.nextUrl.pathname;
