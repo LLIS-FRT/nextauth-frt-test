@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { IncomingForm, File } from 'formidable';
 import fs from 'fs';
 import path from 'path';
+import { protectedRoute } from '@/lib/auth';
+import { UserRole } from '@prisma/client';
 
 // Disable automatic body parsing as formidable will handle it.
 export const config = {
@@ -10,7 +12,7 @@ export const config = {
     },
 };
 
-export async function POST(req: NextRequest) {
+const upload = (req: NextRequest) => {
     // Access the raw Node.js request object.
     const nodeReq = req as NextRequest;
 
@@ -75,3 +77,12 @@ export async function POST(req: NextRequest) {
         });
     });
 }
+
+export const POST = protectedRoute(async function POST(req) {
+    const result = await upload(req);
+
+    return new NextResponse("Not implemented yet", { status: 200 });
+}, {
+    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
+    requireAll: false // Set to true if you need all roles to be present
+});
