@@ -198,7 +198,7 @@ import Link from 'next/link';
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '../ui/input-otp';
 import { BeatLoader } from "react-spinners";
 
-export const LoginForm = ({ closeModal }: { closeModal: () => void }) => {
+export const LoginForm = ({ closeModal }: { closeModal?: () => void }) => {
     const searchParams = useSearchParams();
     const callbackUrl = searchParams?.get('callbackUrl') || undefined;
     const urlError = searchParams?.get('error') === "OAuthAccountNotLinked"
