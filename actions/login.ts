@@ -22,12 +22,10 @@ import { getTwoFactorConfirmationByUserId } from "@/data/twoFactorConfirmation";
 export const login = async (
     values: z.infer<typeof LoginSchema>,
     callbackUrl?: string
-) => {
+): Promise<{ error?: string; success?: string; twoFactor?: boolean }> => {
     const validatedFields = LoginSchema.safeParse(values);
 
-    if (!validatedFields.success) {
-        return { error: "Invalid fields" };
-    }
+    if (!validatedFields.success) return { error: "Invalid fields" };
 
     const { email, password, code } = validatedFields.data;
 
@@ -64,10 +62,7 @@ export const login = async (
 
             const hasExpired = new Date(twoFactorToken.expires) < new Date();
 
-            if (hasExpired) {
-                // Purposefully vague error message to prevent leaking information to bad actors
-                return { error: "Invalid code" };
-            }
+            if (hasExpired) return { error: "Invalid code" };
 
             await db.twoFactorToken.delete({ where: { id: twoFactorToken.id } });
 
@@ -94,11 +89,15 @@ export const login = async (
     }
 
     try {
+        console.log(callbackUrl || DEFAULT_LOGIN_REDIRECT)
         await signIn("credentials", {
             email,
             password,
             redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT
         })
+
+
+        return { success: "Logged in" };
     } catch (error) {
         if (error instanceof AuthError) {
             switch (error.type) {

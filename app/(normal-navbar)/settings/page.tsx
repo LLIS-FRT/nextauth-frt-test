@@ -67,7 +67,9 @@ const SettingsPage = () => {
     const form = useForm<z.infer<typeof SettingsSchema>>({
         resolver: zodResolver(SettingsSchema),
         defaultValues: {
-            name: user?.name || undefined,
+            firstName: user?.firstName || undefined,
+            lastName: user?.lastName || undefined,
+            IAM: user?.IAM?.toLocaleLowerCase() || undefined,
             email: user?.email || undefined,
             isTwoFactorEnabled: user?.isTwoFactorEnabled || undefined,
             newPassword: undefined,
@@ -77,6 +79,9 @@ const SettingsPage = () => {
     });
 
     const onSubmit = (values: z.infer<typeof SettingsSchema>) => {
+        setError(undefined);
+        setSuccess(undefined);
+        
         startTransition(() => {
             settings(values)
                 .then((data) => {
@@ -96,7 +101,7 @@ const SettingsPage = () => {
     }
     // TODO: Mobile responsive
     return (
-        <Card className="w-[600px] mt-[100px]">
+    <Card className="w-full sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px]">
             <CardHeader>
                 <p className="text-2xl font-semibold text-center">
                     ⚙️ Settings
@@ -111,14 +116,48 @@ const SettingsPage = () => {
                         <div className="space-y-4">
                             <FormField
                                 control={form.control}
-                                name="name"
+                                name="firstName"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Name</FormLabel>
+                                        <FormLabel>First Name</FormLabel>
                                         <FormControl>
                                             <Input
                                                 {...field}
-                                                placeholder="John Doe"
+                                                placeholder="First Name"
+                                                disabled={isPending}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="lastName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Last Name</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                {...field}
+                                                placeholder="Last Name"
+                                                disabled={isPending}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="IAM"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>IAM</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                {...field}
+                                                placeholder="DoeJo123"
                                                 disabled={isPending}
                                             />
                                         </FormControl>

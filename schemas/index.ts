@@ -2,13 +2,16 @@ import { UserRole } from "@prisma/client";
 import * as z from "zod";
 
 export const SettingsSchema = z.object({
-    name: z.optional(z.string()),
+    firstName: z.optional(z.string()),
+    lastName: z.optional(z.string()),
     isTwoFactorEnabled: z.optional(z.boolean()),
     // An array of the UserRole enum
     roles: z.array(z.nativeEnum(UserRole)),
     email: z.optional(z.string()),
     password: z.optional(z.string()),
     newPassword: z.optional(z.string()),
+    IAM: z.string().regex(/^[a-zA-Z]{5}[0-9]{3}$/),
+    studentClass: z.optional(z.string()),
 })
     .refine((data) => {
         if (data.password && !data.newPassword) {
@@ -125,7 +128,8 @@ export const LoginSchema = z.object({
 export const RegisterSchema = z.object({
     email: z.string().email({ message: "Email is required" }),
     password: z.string().min(6, { message: "Minimum 6 characters required" }),
-    name: z.string().min(1, { message: "Name is required" }),
+    // IAM has to have 5 letters followed by 3 numbers
+    IAM: z.string().min(1, { message: "IAM is required" }),
 })
     // Password regex validation
     // Check if the password has at least one lowercase letter
@@ -173,6 +177,13 @@ export const RegisterSchema = z.object({
         message: "Password must have at least one special character!",
         path: ["password"],
     })
+
+export const OnboardingSchema = z.object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    isTwoFactorEnabled: z.boolean(),
+    studentClass: z.string().min(1, "Student class is required"),
+});
 
 export const ResetSchema = z.object({
     email: z.string().email({ message: "Email is required" })
