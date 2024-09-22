@@ -5,13 +5,6 @@ import path from 'path';
 import { protectedRoute } from '@/lib/auth';
 import { UserRole } from '@prisma/client';
 
-// Disable automatic body parsing as formidable will handle it.
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
-
 const upload = (req: NextRequest) => {
     // Access the raw Node.js request object.
     const nodeReq = req as NextRequest;
