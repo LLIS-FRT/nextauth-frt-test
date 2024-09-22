@@ -17,7 +17,7 @@ export const RoleGate = ({
     allowedRoles,
     showMessage = true,
     message = "You do not have permission to view this content!",
-    requireAll = false
+    requireAll = false,
 }: RoleGateProps) => {
     const roles = useCurrentRoles();
 

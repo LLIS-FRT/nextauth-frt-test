@@ -1,0 +1,3 @@
+Minor quirks:
+  - We need to make a page for admins to validate availabilities
+  - After logging in it doesnt always show the data and the user has to refresh the page

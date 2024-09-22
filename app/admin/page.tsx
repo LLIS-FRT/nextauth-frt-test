@@ -32,6 +32,7 @@ const AdminPage = () => {
                 }
             })
     }
+    
     // TODO: Mobile responsive
     return (
         <Card className="w-[600px]">

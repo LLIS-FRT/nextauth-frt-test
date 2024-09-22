@@ -5,10 +5,17 @@ interface ProtectedLayoutProps {
 }
 
 const NormalLayout = ({ children }: ProtectedLayoutProps) => {
+  const navHeight = 72;
+
   return (
-    <div className="h-full w-full  gap-y-10 items-center justify-center bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-400 to-blue-800">
-      <Navbar />
-      <div className="flex flex-col gap-y-10 items-center justify-center">
+    <div className="min-h-screen w-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-400 to-blue-800">
+      {/* Navbar */}
+      <div className="navbar">
+        <Navbar height={navHeight} />
+      </div>
+
+      {/* Main content */}
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-72px)]">
         {children}
       </div>
     </div>

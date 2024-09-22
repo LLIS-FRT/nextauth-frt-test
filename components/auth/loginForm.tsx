@@ -198,7 +198,7 @@ import Link from 'next/link';
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '../ui/input-otp';
 import { BeatLoader } from "react-spinners";
 
-export const LoginForm = () => {
+export const LoginForm = ({ closeModal }: { closeModal: () => void }) => {
     const searchParams = useSearchParams();
     const callbackUrl = searchParams?.get('callbackUrl') || undefined;
     const urlError = searchParams?.get('error') === "OAuthAccountNotLinked"
@@ -229,6 +229,7 @@ export const LoginForm = () => {
             startTransition(() => {
                 login(values, callbackUrl)
                     .then((data) => {
+                        console.log(data)
                         if (data?.error) {
                             form.resetField('password');
                             setError(data.error);
@@ -241,6 +242,8 @@ export const LoginForm = () => {
                             setStage('twoFA');
                             setShowTwoFA(true);
                         }
+
+                        if (!data) if (closeModal !== undefined) closeModal();
                     })
                     .catch(() => setError("Something went wrong. Please try again."));
             });
@@ -260,7 +263,7 @@ export const LoginForm = () => {
                     .catch(() => setError("Something went wrong. Please try again."));
             });
         }
-    }, [callbackUrl, form, stage, setError, setStage, startTransition, setSuccess, setShowTwoFA]);
+    }, [stage, callbackUrl, form, closeModal]);
 
     useEffect(() => {
         if (stage === 'twoFA') {
