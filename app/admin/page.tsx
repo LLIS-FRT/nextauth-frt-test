@@ -1,6 +1,7 @@
 "use client";
 
 import { admin } from "@/actions/admin";
+import ProtectedPage from "@/components/auth/protectedPage";
 import { RoleGate } from "@/components/auth/roleGate";
 import { FormSuccess } from "@/components/formSuccess";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ const AdminPage = () => {
                 }
             })
     }
-    
+
     // TODO: Mobile responsive
     return (
         <Card className="w-[600px]">
@@ -66,4 +67,4 @@ const AdminPage = () => {
     )
 }
 
-export default AdminPage
+export default ProtectedPage(AdminPage, { allowedRoles: [UserRole.ADMIN], requireAll: false });

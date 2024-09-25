@@ -7,6 +7,7 @@ import { NewPasswordSchema } from "@/schemas";
 import { getPasswordResetTokenByToken } from "@/data/passwordResetToken";
 import { getUserByEmail } from "@/data/user";
 import { db } from "@/lib/db";
+import { sendPwdChangedEmail } from "@/lib/mail";
 
 export const newPassword = async (
     values: z.infer<typeof NewPasswordSchema>,
@@ -45,6 +46,8 @@ export const newPassword = async (
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    await sendPwdChangedEmail(existingUser.email);
 
     await db.user.update({
         where: { id: existingUser.id },
