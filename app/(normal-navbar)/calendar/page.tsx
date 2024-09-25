@@ -54,6 +54,7 @@ const CalendarPage = () => {
 
   const user = useCurrentUser();
 
+  // Fetch exam data and availability data on component mount
   useEffect(() => {
     const fetchExams = async () => {
       const id = user?.id || user?.IAM;
@@ -125,7 +126,7 @@ const CalendarPage = () => {
     fetchAvailabilities();
   }, [user?.IAM, user?.id]);
 
-  // Get exams
+  // Get exams on refresh
   useEffect(() => {
     if (!refreshExams) return;
     const fetchExams = async () => {
@@ -175,6 +176,7 @@ const CalendarPage = () => {
     setRefreshExams(false);
   }, [user?.IAM, user?.id, refreshExams]);
 
+  // Get availabilities on refresh
   useEffect(() => {
     if (!refreshAvailabilities) return;
     const fetchAvailabilities = async () => {
@@ -204,6 +206,7 @@ const CalendarPage = () => {
     setRefreshAvailabilities(false);
   }, [refreshAvailabilities, user?.IAM, user?.id]);
 
+  // Set calendar events whenever availabilities or exams change
   useEffect(() => setCalEvents([...availabilities, ...exams]), [availabilities, exams]);
 
   const handleShowShift = (event: EventType) => {
@@ -247,8 +250,10 @@ const CalendarPage = () => {
       if (event !== null) newEvents.push(event);
     });
 
+    // TODO: We check if the availabilies aren't overlapping
+
     // If the dbAvailabilities array is not empty, save it to the database
-    if (dbAvailabilities.length > 0) {
+    if (dbAvailabilities.length > 0 && errors.length === 0) {
       const userID = user?.id || user?.IAM;
       if (!userID) throw new Error('User ID not found');
 
@@ -387,7 +392,7 @@ const CalendarPage = () => {
     if (errors.length > 0) {
       const html = (
         <div>
-          <p>Please select a date in the future. The following dates are invalid:</p>
+          <p>Please select a date in the future. The following date{errors.length > 1 ? 's are' : ' is'} invalid:</p>
           <ul>
             {errors.map((err, index) => (
               <li key={index} style={{ paddingLeft: '20px' }}>
@@ -404,29 +409,35 @@ const CalendarPage = () => {
 
   return (
     <div className="bg-white max-h-full">
-      <RoleGate
-        allowedRoles={[
-          UserRole.ADMIN,
-          UserRole.MEMBER,
-        ]}
-      >
-        <div className="h-full w-full items-center bg-white justify-center no-scrollbar">
-          <hr className="w-full border-gray-300" />
-          <CustomCalendar
-            events={calEvents}
-            showAvailability={handleShowAvailability}
-            showExam={handleShowExam}
-            showShift={handleShowShift}
-            allPossibleTimeUnits={timeunits}
-            onValidate={onValidate}
-          />
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold">Calendar</h1>
+        <p className="text-lg">This page is still in development and may have many bugs and errors. Please report unexpected behaviour asap.</p>
+      </div>
+      <div className="mt-2">
+        <RoleGate
+          allowedRoles={[
+            UserRole.ADMIN,
+            UserRole.MEMBER,
+          ]}
+        >
+          <div className="h-full w-full items-center bg-white justify-center no-scrollbar">
+            <hr className="w-full border-gray-300" />
+            <CustomCalendar
+              events={calEvents}
+              showAvailability={handleShowAvailability}
+              showExam={handleShowExam}
+              showShift={handleShowShift}
+              allPossibleTimeUnits={timeunits}
+              onValidate={onValidate}
+            />
+          </div>
 
-        <ShiftModal modalOpen={shiftModalOpen} setModalOpen={setShiftModalOpen} selectedEvent={selectedEvent as ShiftEvent} />
-        <ExamModal modalOpen={examModalOpen} setModalOpen={setExamModalOpen} selectedEvent={selectedEvent as ExamEvent} />
-        <AvailabilityModal modalOpen={availabilityModalOpen} setModalOpen={setAvailabilityModalOpen} selectedEvent={selectedEvent as AvailabilityEvent} reload={() => setRefreshAvailabilities((prev) => !prev)} />
+          <ShiftModal modalOpen={shiftModalOpen} setModalOpen={setShiftModalOpen} selectedEvent={selectedEvent as ShiftEvent} />
+          <ExamModal modalOpen={examModalOpen} setModalOpen={setExamModalOpen} selectedEvent={selectedEvent as ExamEvent} />
+          <AvailabilityModal modalOpen={availabilityModalOpen} setModalOpen={setAvailabilityModalOpen} selectedEvent={selectedEvent as AvailabilityEvent} reload={() => setRefreshAvailabilities((prev) => !prev)} />
 
-      </RoleGate>
+        </RoleGate>
+      </div>
     </div>
   );
 };

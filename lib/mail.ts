@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import Mail from 'nodemailer/lib/mailer';
 
 // Assume transporter is already configured
 const transporter = nodemailer.createTransport({
@@ -9,8 +10,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const name = 'FRT';
+const websiteDomain = process.env.NEXTAUTH_URL;
+
 export const sendTwoFactorTokenEmail = async (
-  email: string,
+  email: Mail.Address | string,
   token: string
 ) => {
   const margin = 1;
@@ -78,7 +82,7 @@ export const sendTwoFactorTokenEmail = async (
 
   await transporter.sendMail({
     from: {
-      name: 'NextAuth.js',
+      name,
       address: userAddress,
     },
     to: [email],
@@ -86,12 +90,11 @@ export const sendTwoFactorTokenEmail = async (
     html,
   });
 };
-
 export const sendPasswordResetEmail = async (
-  email: string,
+  email: Mail.Address | string,
   token: string,
 ) => {
-  const resetLink = `http://localhost:3000/auth/new-password?token=${token}`;
+  const resetLink = `${websiteDomain}/auth/new-password?token=${token}`;
 
   const margin = 1;
 
@@ -115,7 +118,7 @@ export const sendPasswordResetEmail = async (
 
   await transporter.sendMail({
     from: {
-      name: 'NextAuth.js',
+      name,
       address: userAddress,
     },
     to: [email],
@@ -124,10 +127,10 @@ export const sendPasswordResetEmail = async (
   });
 }
 export const sendVerificationEmail = async (
-  email: string,
+  email: Mail.Address | string,
   token: string
 ) => {
-  const websiteLink = 'http://localhost:3000/auth/new-verification';
+  const websiteLink = `${websiteDomain}/auth/new-verification`;
   const confirmLink = `${websiteLink}?token=${token}`;
 
   const margin = 1;
@@ -190,18 +193,47 @@ export const sendVerificationEmail = async (
     `;
 
   const userAddress = process.env.USER;
-
-  if (!userAddress) {
-    throw new Error('USER environment variable is not set');
-  }
+  if (!userAddress) throw new Error('USER environment variable is not set');
 
   await transporter.sendMail({
     from: {
-      name: 'NextAuth.js',
+      name,
       address: userAddress,
     },
     to: [email],
     subject: 'Verify your email',
+    html,
+  });
+};
+
+// Security information emails
+export const sendPwdChangedEmail = async (email: Mail.Address | string) => {
+  // This email is sent when a user has changed their password
+  const resetPwdLink = `${websiteDomain}/auth/reset`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+      <h2 style="text-align: center; color: #0066cc;">Your Password Has Been Changed</h2>
+      <p style="font-size: 16px; color: #555; text-align: center;">We wanted to let you know that your password has been successfully changed.</p>
+      <p style="font-size: 16px; color: #555; text-align: center;">If you did not make this change, please reset your password immediately by clicking the button below.</p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${resetPwdLink}" style="background-color: #cc0000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Your Password</a>
+      </div>
+      <p style="font-size: 16px; color: #555; text-align: center;">Or, use the following link to reset your password: <a href="${resetPwdLink}">Reset Password!</a></p>
+      <p style="font-size: 14px; color: #777; text-align: center;">If you did not request this change, please contact our support team immediately.</p>
+    </div>
+  `;
+
+  const userAddress = process.env.USER;
+  if (!userAddress) throw new Error('USER environment variable is not set');
+
+  await transporter.sendMail({
+    from: {
+      name,
+      address: userAddress,
+    },
+    to: [email],
+    subject: 'Security Information - Password Changed',
     html,
   });
 };

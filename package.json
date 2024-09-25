@@ -44,6 +44,7 @@
     "date-fns": "^3.6.0",
     "formidable": "^3.5.1",
     "gsap": "^3.12.5",
+    "hibp": "^14.1.2",
     "input-otp": "^1.2.4",
     "llis-frt-webuntis": "^1.0.4",
     "lucide-react": "^0.428.0",
