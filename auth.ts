@@ -40,7 +40,7 @@ declare module "next-auth/jwt" {
     }
 }
 
-const INACTIVE_EXPIRATION_MS = 1000 * 60 * 1; // 30 minutes
+const INACTIVE_EXPIRATION_MS = 1000 * 60 * 30; // 30 minutes
 const ACTIVE_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
