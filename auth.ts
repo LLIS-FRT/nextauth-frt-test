@@ -40,11 +40,8 @@ declare module "next-auth/jwt" {
     }
 }
 
-// The max amount of time a token is valid for
-const ACTIVE_EXPIRY_MS = 1000 * 60 * 60 * 24 * 1; // 1 days
-
-// The max amount of time a token is valid for when inactive
-const INACTIVE_EXPIRY_MS = 1000 * 60 * 60 * 2; // 2 hours
+const INACTIVE_EXPIRATION_MS = 1000 * 60 * 1; // 30 minutes
+const ACTIVE_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
     events: {
@@ -60,7 +57,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
     },
     callbacks: {
-        async signIn({ user, account, profile, email, credentials }) {
+        async signIn({ user, account }) {
             if (!user.id) return false;
 
             // Only email and pwd users have to verify email
@@ -131,16 +128,21 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             token.user.email = user.email;
             token.user.id = user.id;
 
+            // Set token expiration times based on activity
+            const now = Math.floor(Date.now() / 1000); // Current time in seconds
+
+            if (user) token.exp = now + ACTIVE_EXPIRATION_MS / 1000;
+            else token.exp = now + INACTIVE_EXPIRATION_MS / 1000;
+
             return token;
         }
-
     },
     session: {
         strategy: "jwt",
-        maxAge: ACTIVE_EXPIRY_MS / 1000,
+        maxAge: ACTIVE_EXPIRATION_MS / 1000 // Set maxAge to the active expiration time
     },
     jwt: {
-        maxAge: ACTIVE_EXPIRY_MS / 1000,
+        maxAge: ACTIVE_EXPIRATION_MS / 1000, // Set maxAge to the active expiration time
     },
     ...authConfig,
 })

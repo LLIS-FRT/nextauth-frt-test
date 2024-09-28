@@ -1,7 +1,7 @@
 "use client";
 
 import { admin } from "@/actions/admin";
-import ProtectedPage from "@/components/auth/protectedPage";
+import ProtectedPageClient from "@/components/auth/protectedPageClient";
 import { RoleGate } from "@/components/auth/roleGate";
 import { FormSuccess } from "@/components/formSuccess";
 import { Button } from "@/components/ui/button";
@@ -67,4 +67,4 @@ const AdminPage = () => {
     )
 }
 
-export default ProtectedPage(AdminPage, { allowedRoles: [UserRole.ADMIN], requireAll: false });
+export default ProtectedPageClient(AdminPage, { allowedRoles: [UserRole.ADMIN], requireAll: false });

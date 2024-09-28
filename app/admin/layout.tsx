@@ -1,4 +1,6 @@
+import ProtectedPageServer from "@/components/auth/protectedPageServer";
 import { Navbar } from "./_components/navbar";
+import { UserRole } from "@prisma/client";
 
 interface ProtectedLayoutProps {
     children: React.ReactNode;
@@ -22,4 +24,4 @@ const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
     );
 };
 
-export default ProtectedLayout
+export default ProtectedPageServer(ProtectedLayout, { allowedRoles: [UserRole.ADMIN], requireAll: false })

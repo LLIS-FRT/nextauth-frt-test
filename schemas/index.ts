@@ -191,4 +191,50 @@ export const ResetSchema = z.object({
 
 export const NewPasswordSchema = z.object({
     password: z.string().min(6, { message: "Minimum 6 characters required" }),
-});
+})
+    // Password regex validation
+    // Check if the password has at least one lowercase letter
+    .refine((data) => {
+        if (data.password && !data.password.match(/[a-z]/g)) {
+            return false
+        }
+
+        return true
+    }, {
+        message: "New password must have at least one lowercase letter!",
+        path: ["password"],
+    })
+    // Check if the password has at least one uppercase letter
+    .refine((data) => {
+        if (data.password && !data.password.match(/[A-Z]/g)) {
+            return false
+        }
+
+        return true;
+    }, {
+        message: "New password must have at least one uppercase letter!",
+        path: ["password"],
+    })
+    // Check if the password has at least one number
+    .refine((data) => {
+        if (data.password && !data.password.match(/[0-9]/g)) {
+            return false
+        }
+
+        return true;
+    }, {
+        message: "New password must have at least one number!",
+        path: ["password"],
+    })
+    // Check if the password has at least one special character
+    .refine((data) => {
+        const specialChars = /[`!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/;
+        if (data.password && !data.password.match(specialChars)) {
+            return false
+        }
+
+        return true;
+    }, {
+        message: "New password must have at least one special character!",
+        path: ["password"],
+    })
