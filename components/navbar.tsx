@@ -77,8 +77,13 @@ export const Navbar = ({ height, routes }: { height: number, routes: Routes[] })
         }
     }, [isMenuOpen]);
 
+    if(height < 72) throw new Error("Height must be at least 72px");
+
+    const className = `bg-secondary flex justify-between items-center p-4 shadow-md relative min-h-[${height}px] max-h-[${height}px]`;
+
+    console.log(className);
     return (
-        <nav className="bg-secondary flex justify-between items-center p-4 shadow-md relative h-[${height}px]">
+        <nav className={className}>
             <div className="flex items-center justify-between w-full">
                 {/* Move the menu button to the right */}
                 <button onClick={toggleMenu} className="md:hidden">

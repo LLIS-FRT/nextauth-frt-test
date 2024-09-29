@@ -26,14 +26,14 @@ const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
     const navHeight = 72;
 
     return (
-        <div className="min-h-screen w-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-400 to-blue-800">
+        <div className="h-screen w-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-400 to-blue-800">
             {/* Navbar */}
             <div className="navbar">
                 <Navbar routes={routes} height={navHeight} />
             </div>
 
             {/* Main content */}
-            <div className={`flex flex-col items-center justify-center min-h-[calc(100vh-${navHeight}px)]`}>
+            <div className="flex flex-col items-center justify-center">
                 {children}
             </div>
         </div>
