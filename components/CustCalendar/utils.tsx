@@ -49,10 +49,12 @@ export const getOrdinalSuffix = (day: number): string => {
     }
 };
 
-export const formatWeekHeaderDate = (date: Date): string => {
+export const formatWeekHeaderDate = (date: Date, size: "sm" | "lg"): string => {
     const day = date.getDate();
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-    return `${dayName} ${day}${getOrdinalSuffix(day)}`;
+    const dayName = date.toLocaleDateString('en-US', { weekday: size === 'sm' ? 'short' : 'long' });
+
+    const formattedDate = `${dayName}${size === 'sm' ? '.' : ''} ${day}${getOrdinalSuffix(day)}`;
+    return formattedDate;
 };
 
 export const firstFriday = (date: Date): Date => {
@@ -93,6 +95,8 @@ export const getSlotHeight = (isBreak?: boolean): number => {
 export const getTexture = (color: EventBgColor): EventBgTexture => {
     switch (color) {
         case EventBgColor.Availability:
+            return EventBgTexture.Solid; // Neutral event, solid color
+        case EventBgColor.overlap:
             return EventBgTexture.Solid; // Neutral event, solid color
         case EventBgColor.Exam:
             return EventBgTexture.Dashed; // Negative event, dashed lines for emphasis
@@ -148,7 +152,7 @@ export const eventStyle = (
     if (!document) {
         return textureStyles[EventBgTexture.Solid];
     }
-    
+
     // Inject global styles for the striped texture
     const styleSheet = document.createElement("style");
     const textureClass = `global-event-bg {

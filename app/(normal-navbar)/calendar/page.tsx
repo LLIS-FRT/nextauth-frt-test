@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { RoleGate } from "@/components/auth/roleGate";
 import CustomCalendar from "@/components/CustCalendar/Calendar";
-import { AvailabilityEvent, EventBgColor, EventType, ExamEvent, ShiftEvent, TimeSlotProps } from "@/components/CustCalendar/types";
+import { AvailabilityEvent, EventBgColor, EventType, ExamEvent, OverlapEvent, ShiftEvent, TimeSlotProps } from "@/components/CustCalendar/types";
 import { Availability, UserRole } from "@prisma/client";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,9 @@ import moment from 'moment';
 import { Exam } from 'webuntis';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { db } from '@/lib/db';
+import { AvailabilityModal } from '@/components/modals/availabilityModal';
+import { ShiftModal } from '@/components/modals/shiftModal';
+import { ExamModal } from '@/components/modals/examModal';
 
 interface EventValidationError {
   startDate: Date;
@@ -42,8 +45,9 @@ const CalendarPage = () => {
   const [availabilities, setAvailabilities] = useState<EventType[]>([]);
 
   const [calEvents, setCalEvents] = useState<EventType[]>([]);
+  const [loadingCalEvents, setLoadingCalEvents] = useState(true);
 
-  const [selectedEvent, setSelectedEvent] = useState<ShiftEvent | ExamEvent | AvailabilityEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ShiftEvent | ExamEvent | AvailabilityEvent | OverlapEvent | null>(null);
 
   const [examModalOpen, setExamModalOpen] = useState(false);
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
@@ -207,22 +211,11 @@ const CalendarPage = () => {
   }, [refreshAvailabilities, user?.IAM, user?.id]);
 
   // Set calendar events whenever availabilities or exams change
-  useEffect(() => setCalEvents([...availabilities, ...exams]), [availabilities, exams]);
-
-  const handleShowShift = (event: EventType) => {
-    setSelectedEvent(event);
-    setShiftModalOpen(true);
-  };
-
-  const handleShowExam = (event: EventType) => {
-    setSelectedEvent(event);
-    setExamModalOpen(true);
-  };
-
-  const handleShowAvailability = (event: EventType) => {
-    setSelectedEvent(event);
-    setAvailabilityModalOpen(true);
-  };
+  useEffect(() => {
+    setLoadingCalEvents(true);
+    setCalEvents([...availabilities, ...exams])
+    setLoadingCalEvents(false);
+  }, [availabilities, exams]);
 
   // Broken
   // TODO: Fix
@@ -424,18 +417,31 @@ const CalendarPage = () => {
             <hr className="w-full border-gray-300" />
             <CustomCalendar
               events={calEvents}
-              showAvailability={handleShowAvailability}
-              showExam={handleShowExam}
-              showShift={handleShowShift}
+              handleEventClick={(event: EventType, type: EventType['type']) => {
+                switch (type) {
+                  case "availability":
+                    setAvailabilityModalOpen(true);
+                    setSelectedEvent(event);
+                    break;
+                  case "shift":
+                    setShiftModalOpen(true);
+                    setSelectedEvent(event);
+                    break;
+                  case "exam":
+                    setExamModalOpen(true);
+                    setSelectedEvent(event);
+                    break;
+                }
+              }}
               allPossibleTimeUnits={timeunits}
               onValidate={onValidate}
+              selectable={!loadingCalEvents}
             />
           </div>
 
           <ShiftModal modalOpen={shiftModalOpen} setModalOpen={setShiftModalOpen} selectedEvent={selectedEvent as ShiftEvent} />
           <ExamModal modalOpen={examModalOpen} setModalOpen={setExamModalOpen} selectedEvent={selectedEvent as ExamEvent} />
           <AvailabilityModal modalOpen={availabilityModalOpen} setModalOpen={setAvailabilityModalOpen} selectedEvent={selectedEvent as AvailabilityEvent} reload={() => setRefreshAvailabilities((prev) => !prev)} />
-
         </RoleGate>
       </div>
     </div>
@@ -443,136 +449,3 @@ const CalendarPage = () => {
 };
 
 export default CalendarPage;
-
-interface ShiftModalProps {
-  modalOpen: boolean;
-  setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  selectedEvent: ShiftEvent | null;
-}
-
-interface ExamModalProps {
-  modalOpen: boolean;
-  setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  selectedEvent: ExamEvent | null;
-}
-
-interface AvailabilityModalProps {
-  modalOpen: boolean;
-  setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  selectedEvent: AvailabilityEvent | null;
-  reload: () => void;
-}
-
-const ShiftModal = ({ modalOpen, setModalOpen, selectedEvent }: ShiftModalProps) => {
-  if (!selectedEvent) return null;
-
-  return (
-    <Dialog open={modalOpen} onOpenChange={() => setModalOpen((prev) => !prev)}>
-      <DialogOverlay className="fixed inset-0 bg-black/50 flex items-center justify-center" />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Shift Modal</DialogTitle>
-          <DialogDescription>
-            {selectedEvent?.type}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          {/* <Button type="submit">Confirm</Button> */}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-const ExamModal = ({ modalOpen, setModalOpen, selectedEvent }: ExamModalProps) => {
-  if (!selectedEvent) return null;
-
-  return (
-    <Dialog open={modalOpen} onOpenChange={() => setModalOpen((prev) => !prev)}>
-      <DialogOverlay className="fixed inset-0 bg-black/50 flex items-center justify-center" />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Exam Modal</DialogTitle>
-          <DialogDescription>
-            {selectedEvent?.type}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          {/* <Button type="submit">Confirm</Button> */}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-const AvailabilityModal = ({ modalOpen, setModalOpen, selectedEvent, reload }: AvailabilityModalProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-
-  if (!selectedEvent) return null;
-  const id = selectedEvent.id;
-
-  const onEdit = () => {
-    setIsEditing((prev) => !prev);
-    setModalOpen((prev) => !prev);
-
-    toast.warning(`Edit is not implemented yet. ID: ${id}`);
-  }
-
-  const onDelete = async () => {
-    // Make api call
-    const res = await fetch(`/api/availability/id/${id}`, {
-      method: 'DELETE',
-    });
-
-    if (res.ok) {
-      setModalOpen((prev) => !prev);
-      reload();
-    }
-    else {
-      setModalOpen((prev) => !prev);
-      toast.error(`Deletion failed.`);
-    }
-  }
-
-  return (
-    <div>
-      <Dialog open={modalOpen} onOpenChange={() => setModalOpen((prev) => !prev)}>
-        <DialogOverlay className="fixed inset-0 bg-black/50 flex items-center justify-center" />
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Availability Modal</DialogTitle>
-            <DialogDescription>
-              {selectedEvent?.type}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant={"outline"} onClick={onEdit}>Edit</Button>
-            <Button variant={"destructive"} onClick={onDelete}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <EditAvailabilityModal modalOpen={isEditing} setModalOpen={setIsEditing} selectedEvent={selectedEvent} reload={reload} />
-    </div>
-  )
-}
-
-const EditAvailabilityModal = ({ modalOpen, setModalOpen, selectedEvent }: AvailabilityModalProps) => {
-  if (!selectedEvent) return null;
-
-  return (
-    <Dialog open={modalOpen} onOpenChange={() => setModalOpen((prev) => !prev)}>
-      <DialogOverlay className="fixed inset-0 bg-black/50 flex items-center justify-center" />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Availability Edit Modal</DialogTitle>
-          <DialogDescription>
-            {selectedEvent?.type}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant={"outline"} onClick={() => setModalOpen((prev) => !prev)}>Submit</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}

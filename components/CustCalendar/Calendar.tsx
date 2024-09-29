@@ -8,7 +8,16 @@ import Legend from './Legend';
 
 
 //#region Calendar Component
-const Calendar: React.FC<CalendarProps> = ({ onValidate, allPossibleTimeUnits, events, showExam, showShift, showAvailability, autoSubmit = false, weekends = false }) => {
+const Calendar: React.FC<CalendarProps> = ({
+  onValidate,
+  allPossibleTimeUnits,
+  events,
+  handleEventClick,
+  autoSubmit = false,
+  weekends = false,
+  showlegend = true,
+  selectable = true
+}) => {
   const [selectedSlots, setSelectedSlots] = useState<{ slot: TimeUnit; day: Date }[]>([]);
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const calendarRef = useRef<HTMLDivElement>(null);
@@ -43,7 +52,7 @@ const Calendar: React.FC<CalendarProps> = ({ onValidate, allPossibleTimeUnits, e
         setCurrentWeek={setCurrentWeek}
       />
       {/* Legend for Event Background Colors */}
-      <Legend />
+      {showlegend && <Legend />}
       <div className={`grid grid-cols-[auto_repeat(5,_minmax(0,_1fr))] gap-0`}>
         <TimeColumn
           allPossibleTimeUnits={allPossibleTimeUnits}
@@ -55,15 +64,14 @@ const Calendar: React.FC<CalendarProps> = ({ onValidate, allPossibleTimeUnits, e
           return (
             <div key={index}>
               <DayColumn
-                showAvailability={showAvailability}
-                showExam={showExam}
-                showShift={showShift}
+                handleEventClick={handleEventClick}
                 events={events}
                 calendarRef={calendarRef}
                 selectedSlots={selectedSlots}
                 allPossibleTimeUnits={allPossibleTimeUnits}
                 day={day}
                 setSelectedSlots={setSelectedSlots}
+                selectable={selectable}
               />
             </div>
           )

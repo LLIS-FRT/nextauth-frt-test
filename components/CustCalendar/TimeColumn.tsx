@@ -86,12 +86,15 @@ const TimeColumn: React.FC<TimeColumnProps> = ({ allPossibleTimeUnits, selectedS
           <div
             key={slot.name}
             className={`border-b pl-2 pr-2 flex items-center justify-center ${slot.isBreak ? 'bg-gray-200' : ''}`}
-            style={{ height: `${height}px` }} // Use inline style for dynamic height
+            style={{ height: `${height}px` }} // Inline style for dynamic height
             onClick={() => selectAllSlotsOfTime(slot)}
           >
-            {slot.isBreak ? null : (
-              <div>
-                {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+            {!slot.isBreak && (
+              <div className="flex flex-col sm:flex-row sm:items-center">
+                <div>{formatTime(slot.startTime)}</div>
+                {/* Hide the dash on small screens */}
+                <span className="hidden sm:inline mx-1">-</span>
+                <div>{formatTime(slot.endTime)}</div>
               </div>
             )}
           </div>

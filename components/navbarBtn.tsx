@@ -21,7 +21,7 @@ export const NavbarButton = ({ href, label, className, onClick }: NavbarButtonPr
             className={className}
             onClick={onClick} // Use the onClick prop
         >
-            <Link href={href} className="block p-2 w-full" onClick={onClick}>
+            <Link href={href} className="block p-2 w-full">
                 {label}
             </Link>
         </Button>

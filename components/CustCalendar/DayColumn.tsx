@@ -1,3 +1,5 @@
+"use client";
+import { useEffect, useState } from "react";
 import TimeSlots from "./TimeSlots";
 import { DayColumnProps } from "./types";
 import { formatWeekHeaderDate } from "./utils";
@@ -9,13 +11,25 @@ const DayColumn: React.FC<DayColumnProps> = ({
     setSelectedSlots,
     calendarRef,
     events,
-    showExam,
-    showShift,
-    showAvailability
+    handleEventClick,
+    selectable
 }) => {
+    const [windowSize, setWindowSize] = useState(window.innerWidth);
+
+    const handleResize = () => {
+        setWindowSize(window.innerWidth);
+    };
+
+    useEffect(() => {
+        window.addEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+
     const selectAllSlotsOfDay = () => {
         const allSlotsOfDay = allPossibleTimeUnits.map(slot => ({ slot, day }));
-        
+
         // If all slots are already selected, unselect all of this day's slots
         if (selectedSlots.some(slot => slot.day.toDateString() === day.toDateString())) {
             setSelectedSlots(selectedSlots.filter(slot => slot.day.toDateString() !== day.toDateString()));
@@ -25,22 +39,27 @@ const DayColumn: React.FC<DayColumnProps> = ({
             setSelectedSlots([...selectedSlots, ...allSlotsOfDay]);
         }
     }
-    
+
     return (
         <div key={day.toDateString()} className="flex flex-col border-r">
-            <div className="border-b font-bold flex items-center justify-center h-14 overflow-hidden bg-gray-100" onClick={selectAllSlotsOfDay}>
-                <h3 className="font-bold p-2">{formatWeekHeaderDate(day)}</h3>
+            <div
+                className="border-b font-bold flex items-center justify-center h-14 overflow-hidden bg-gray-100"
+                onClick={selectAllSlotsOfDay}
+            >
+                {/* Use Tailwind's responsive hidden utility */}
+                <h3 className="font-bold p-2">
+                    {formatWeekHeaderDate(day, windowSize < 768 ? "sm" : "lg")}
+                </h3>
             </div>
             <TimeSlots
-                showAvailability={showAvailability}
-                showExam={showExam}
-                showShift={showShift}
+                handleEventClick={handleEventClick}
                 events={events}
                 allPossibleTimeUnits={allPossibleTimeUnits}
                 day={day}
                 setSelectedSlots={setSelectedSlots}
                 calendarRef={calendarRef}
                 selectedSlots={selectedSlots}
+                selectable={selectable}
             />
         </div>
     );

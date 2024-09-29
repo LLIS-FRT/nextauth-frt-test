@@ -7,6 +7,8 @@ const LegendElement = ({ colorName }: { colorName: string }) => {
     const texture = getTexture(color);
     const style = eventStyle(color, texture);
 
+    if(color === EventBgColor.overlap) return null;
+
     return (
         <div key={colorName} className="flex items-center gap-2">
             <div style={style as CSSProperties} className="w-5 h-5" />

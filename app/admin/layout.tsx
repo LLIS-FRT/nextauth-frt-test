@@ -1,10 +1,26 @@
 import ProtectedPageServer from "@/components/auth/protectedPageServer";
-import { Navbar } from "./_components/navbar";
+import { Navbar } from "@/components/navbar";
 import { UserRole } from "@prisma/client";
 
 interface ProtectedLayoutProps {
     children: React.ReactNode;
 }
+
+const routes = [
+    { href: "/", label: "Home", isAuthenticated: false },
+    {
+        href: "/admin",
+        label: "Admin",
+        roles: [UserRole.ADMIN],
+        isAuthenticated: true,
+    },
+    {
+        href: "/admin/shift-manager",
+        label: "Shift Manager",
+        roles: [UserRole.ADMIN],
+        isAuthenticated: true,
+    }
+];
 
 const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
     const navHeight = 72;
@@ -13,11 +29,11 @@ const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
         <div className="min-h-screen w-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-400 to-blue-800">
             {/* Navbar */}
             <div className="navbar">
-                <Navbar height={navHeight} />
+                <Navbar routes={routes} height={navHeight} />
             </div>
 
             {/* Main content */}
-            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-72px)] mt-5">
+            <div className={`flex flex-col items-center justify-center min-h-[calc(100vh-${navHeight}px)]`}>
                 {children}
             </div>
         </div>

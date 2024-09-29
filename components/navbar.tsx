@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { UserButton } from "@/components/auth/userButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { NavbarButton } from "./navbarButton";
+import { NavbarButton } from "./navbarBtn";
 import { UserRole } from "@prisma/client";
 import { RoleGate } from "@/components/auth/roleGate";
 import { LoginButton } from "@/components/auth/loginButton";
@@ -12,6 +12,7 @@ import { FiMenu, FiX } from "react-icons/fi";
 import gsap from "gsap"; // Import GSAP
 import { Sign } from "crypto";
 import { LogoutButton } from "@/components/auth/logoutButton";
+import Link from "next/link";
 
 type Routes = {
     href: string;
@@ -21,39 +22,7 @@ type Routes = {
     isAuthenticated?: boolean;
 };
 
-const routes: Routes[] = [
-    { href: "/", label: "Home", isAuthenticated: false },
-    {
-        href: "/admin",
-        label: "Admin",
-        roles: [UserRole.ADMIN],
-        isAuthenticated: true,
-    },
-    {
-        href: "/calendar",
-        label: "Calendar",
-        roles: [UserRole.ADMIN, UserRole.MEMBER],
-        isAuthenticated: true,
-    },
-    {
-        href: "/reports",
-        label: "Reports",
-        roles: [UserRole.ADMIN, UserRole.MEMBER],
-        isAuthenticated: true,
-    },
-];
-
-const adminRoutes: Routes[] = [
-    { href: "/", label: "Home", isAuthenticated: false },
-    {
-        href: "/admin/shifts",
-        label: "Shifts",
-        roles: [UserRole.ADMIN],
-        isAuthenticated: true,
-    }
-];
-
-export const Navbar = ({ height }: { height: number }) => {
+export const Navbar = ({ height, routes }: { height: number, routes: Routes[] }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const user = useCurrentUser();
     const menuRef = useRef<HTMLDivElement>(null);
@@ -206,11 +175,14 @@ export const Navbar = ({ height }: { height: number }) => {
                             {user ? (
                                 <div className="flex flex-row w-full gap-2">
                                     <Button
+                                        asChild
                                         variant="secondary"
                                         className="text-left w-full"
                                         onClick={toggleMenu}
                                     >
-                                        Settings
+                                        <Link href={"/settings"} className="block p-2 w-full">
+                                            Settings
+                                        </Link>
                                     </Button>
                                     <LogoutButton>
                                         <Button

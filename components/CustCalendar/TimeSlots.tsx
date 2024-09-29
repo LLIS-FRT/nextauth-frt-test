@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TimeUnit, TimeSlotsProps, EventType, AvailabilityEvent, ExamEvent, ShiftEvent } from './types';
+import { TimeUnit, TimeSlotsProps, EventType, AvailabilityEvent, ExamEvent, ShiftEvent, OverlapEvent } from './types';
 import TimeSlot from './TimeSlot';
 import Timeline from './Timeline';
 
@@ -10,9 +10,8 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
     setSelectedSlots,
     calendarRef,
     events,
-    showExam,
-    showShift,
-    showAvailability
+    handleEventClick,
+    selectable: selectable_
 }) => {
     const [dragStart, setDragStart] = useState<{ slot: TimeUnit; day: Date } | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -87,7 +86,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
             }
         }
     };
-    
+
     const findTodayEvents = (slot: TimeUnit, day: Date): EventType[] => {
         const allEvents = events || [];
         const { startTime, endTime } = slot;
@@ -112,6 +111,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                             id,
                             title,
                             type: 'availability',
+                            extendedProps: event.extendedProps,
                         } as AvailabilityEvent);
                     } else if (type === 'exam') {
                         filteredEvents.push({
@@ -121,6 +121,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                             id,
                             title,
                             type: 'exam',
+                            extendedProps: event.extendedProps,
                         } as ExamEvent);
                     } else if (type === 'shift') {
                         filteredEvents.push({
@@ -131,7 +132,18 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                             title,
                             type: 'shift',
                             shiftType: event.shiftType,
+                            extendedProps: event.extendedProps,
                         } as ShiftEvent);
+                    } else if (type === 'overlap') {
+                        filteredEvents.push({
+                            backgroundColor,
+                            endDate,
+                            startDate,
+                            id,
+                            title,
+                            type: 'overlap',
+                            extendedProps: event.extendedProps,
+                        } as OverlapEvent);
                     }
                 }
             }
@@ -219,13 +231,16 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
             <div>
                 {allSlots.map((slot, index) => {
                     const selectable = !isBeforeNow(slot, day);
+                    // If selectable is true, we now check if selectable_ is true
+                    // if selectable_ is true, we set selectable to true
+                    // if selectable_ is false, we set selectable to false
+
+                    const finalSelectable = selectable && selectable_;
                     return (
                         <div key={index} className={`${isBeforeNow(slot, day) ? 'bg-blue-200/25' : ''}`}>
                             <TimeSlot
                                 events={findTodayEvents(slot, day)}
-                                showAvailability={showAvailability}
-                                showExam={showExam}
-                                showShift={showShift}
+                                handleEventClick={handleEventClick}
                                 allPossibleTimeUnits={allPossibleTimeUnits}
                                 day={day}
                                 dragEnd={dragEnd}
@@ -233,7 +248,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                                 isDragging={isDragging}
                                 selectedSlots={selectedSlots}
                                 slot={slot}
-                                selectable={selectable}
+                                selectable={finalSelectable}
                                 handleMouseDown={() => handleMouseDown(slot, day)}
                                 handleMouseMove={(e) => handleMouseMove(e, slot, day)}
                                 handleMouseUp={() => handleMouseUp(slot, day)}

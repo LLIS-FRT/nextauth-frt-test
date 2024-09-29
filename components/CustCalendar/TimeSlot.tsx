@@ -17,9 +17,7 @@ const TimeSlot: React.FC<TimeSlotProps> = ({
     dragStart,
     dragEnd,
     slot,
-    showAvailability,
-    showExam,
-    showShift,
+    handleEventClick,
     events, // Add the event prop to display event details
     children,
     selectable
@@ -108,6 +106,28 @@ const TimeSlot: React.FC<TimeSlotProps> = ({
         return isAtOrAfterSlotStartTime || isBeforeSlotEndTime;
     };
 
+    const isLastSlotForEvent = (event: EventType): boolean => {
+        const { startTime, endTime } = slot;
+        const { endDate } = event;
+
+        const formatTime = (time: number): string => {
+            const hours = Math.floor(time / 100).toString().padStart(2, '0');
+            const minutes = (time % 100).toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        };
+
+        const slotStartTimeStr = formatTime(startTime);
+        const slotEndTimeStr = formatTime(endTime);
+        const slotStartDate = new Date(`${day.toDateString()} ${slotStartTimeStr}`);
+        const slotEndDate = new Date(`${day.toDateString()} ${slotEndTimeStr}`);
+        const eventEndDate = new Date(endDate);
+
+        const isAtOrBeforeSlotEndTime = eventEndDate >= slotStartDate && eventEndDate <= slotEndDate;
+        const isAfterSlotStartTime = eventEndDate >= slotStartDate && eventEndDate <= slotEndDate;
+
+        return isAtOrBeforeSlotEndTime || isAfterSlotStartTime;
+    };
+
     const shouldShowPassedTime = (): boolean => {
         if (isBreak) return false;
         if (timePassedPercentage < 0) return false;
@@ -162,12 +182,11 @@ const TimeSlot: React.FC<TimeSlotProps> = ({
                     event={event}
                     index={index}
                     totalEvents={events.length}
-                    showAvailability={showAvailability}
-                    showExam={showExam}
-                    showShift={showShift}
+                    handleEventClick={handleEventClick}
                     timeSlotHeight={slotHeight}
                     containerWidth={containerWidth}
                     isFirstSlot={isFirstSlotForEvent(event)}
+                    isLastSlot={isLastSlotForEvent(event)}
                 />
             ))}
         </div>

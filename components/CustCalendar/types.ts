@@ -16,7 +16,8 @@ export interface BaseEvent {
     backgroundColor: EventBgColor; // Background color for the event
     startDate: Date;
     endDate: Date;
-    type: 'exam' | 'shift' | 'availability'; // Event type
+    type: 'exam' | 'shift' | 'availability' | 'overlap'; // Event type
+    extendedProps?: { [key: string]: any };
 }
 
 export interface ShiftEvent extends BaseEvent {
@@ -33,18 +34,22 @@ export interface AvailabilityEvent extends BaseEvent {
     type: 'availability';
 }
 
+export interface OverlapEvent extends BaseEvent {
+    type: 'overlap';
+}
+
 // Union type for all event types
-export type EventType = ShiftEvent | ExamEvent | AvailabilityEvent;
+export type EventType = ShiftEvent | ExamEvent | AvailabilityEvent | OverlapEvent;
 
 export interface CalendarProps {
     allPossibleTimeUnits: TimeUnit[];
     onValidate: (slots: { startDate: Date; endDate: Date; }[]) => void;
     events?: EventType[];
     autoSubmit?: boolean;
-    showExam: (event: EventType) => void; // Function to handle exam events
-    showShift: (event: EventType) => void; // Function to handle shift events
-    showAvailability: (event: EventType) => void; // Function to handle availability events
+    handleEventClick: (event: EventType, type: EventType['type']) => void;
     weekends?: boolean;
+    showlegend?: boolean;
+    selectable?: boolean;
 }
 
 export interface WeekHeaderProps {
@@ -59,9 +64,8 @@ export interface DayColumnProps {
     selectedSlots: { slot: TimeUnit; day: Date }[];
     allPossibleTimeUnits: TimeUnit[];
     events?: EventType[];
-    showExam: (event: EventType) => void; // Function to handle exam events
-    showShift: (event: EventType) => void; // Function to handle shift events
-    showAvailability: (event: EventType) => void; // Function to handle availability events
+    handleEventClick: (event: EventType, type: EventType['type']) => void;
+    selectable: boolean;
 }
 
 export interface TimeSlotProps {
@@ -77,9 +81,7 @@ export interface TimeSlotProps {
     dragEnd: { slot: TimeUnit; day: Date } | null; // End of the drag range
     slot: TimeUnit; // Current time slot
     events: EventType[]; // List of events for this time slot
-    showExam: (event: EventType) => void; // Function to handle exam events
-    showShift: (event: EventType) => void; // Function to handle shift events
-    showAvailability: (event: EventType) => void; // Function to handle availability events
+    handleEventClick: (event: EventType, type: EventType['type']) => void;
     children?: React.ReactNode;
     selectable: Boolean;
 }
@@ -91,9 +93,8 @@ export interface TimeSlotsProps {
     setSelectedSlots: React.Dispatch<React.SetStateAction<{ slot: TimeUnit; day: Date }[]>>
     calendarRef: React.RefObject<HTMLDivElement>;
     events?: EventType[];
-    showExam: (event: EventType) => void; // Function to handle exam events
-    showShift: (event: EventType) => void; // Function to handle shift events
-    showAvailability: (event: EventType) => void; // Function to handle availability events
+    handleEventClick: (event: EventType, type: EventType['type']) => void;
+    selectable: Boolean;
 }
 
 export interface TimeColumnProps {
@@ -113,7 +114,8 @@ export enum EventBgColor {
     minUsersWithUser = 'rgba(255, 165, 0, 0.8)', // Barely acceptable: gold for min users with user
     minUsersWithoutUser = 'rgba(255, 165, 0, 0.6)', // Barely acceptable: lighter gold for min users without user
     lessThanMinUsersWithUser = 'rgba(255, 69, 0, 0.8)', // Terrible: bright red-orange for less than min users with user
-    lessThanMinUsersWithoutUser = 'rgba(255, 69, 0, 0.7)' // Terrible: slightly lighter red-orange for less than min users without user
+    lessThanMinUsersWithoutUser = 'rgba(255, 69, 0, 0.7)', // Terrible: slightly lighter red-orange for less than min users without user
+    overlap = 'rgba(0, 0, 255, 0.5)'             // Neutral: blue for overlaps
 }
 
 export enum EventBgTexture {

@@ -6,41 +6,23 @@ interface EventProps {
     event: EventType;
     index: number; // Index to handle overlapping events
     totalEvents: number; // Total number of overlapping events in this time slot
-    showExam: (event: EventType) => void; // Function to show exam details
-    showShift: (event: EventType) => void; // Function to show shift details
-    showAvailability: (event: EventType) => void; // Function to show availability details
+    handleEventClick: (event: EventType, type: EventType['type']) => void;
     timeSlotHeight: number; // Height of the time slot to make the event full height
     containerWidth: number; // Width of the container holding the events
     isFirstSlot: boolean; // Indicates if this is the first slot for the event
+    isLastSlot: boolean;
 }
 
 const Event: React.FC<EventProps> = ({
     event,
     index,
     totalEvents,
-    showExam,
-    showShift,
-    showAvailability,
+    handleEventClick,
     timeSlotHeight,
     containerWidth,
     isFirstSlot,
+    isLastSlot
 }) => {
-    // Determine the click handler based on event type
-    const handleClick = () => {
-        switch (event.type) {
-            case 'exam':
-                showExam(event);
-                break;
-            case 'shift':
-                showShift(event);
-                break;
-            case 'availability':
-                showAvailability(event);
-                break;
-            default:
-                break;
-        }
-    };
 
     // Calculate the width and offset dynamically based on the number of overlapping events
     const leftOffset = (100 / totalEvents) * index; // Dynamically calculate based on the event index and totalEvents
@@ -52,9 +34,19 @@ const Event: React.FC<EventProps> = ({
     const texture = getTexture(color);
     const style = eventStyle(color, texture);
 
+    let className = 'absolute p-1 text-white text-xs border-r border-l border-black';
+
+    if (isFirstSlot) {
+        className += ' border-t';
+    }
+
+    if (isLastSlot) {
+        className += ' border-b';
+    }
+
     return (
         <div
-            className="absolute p-1 text-white text-xs"
+            className={className}
             style={{
                 ...style,
                 color: 'black',
@@ -68,14 +60,15 @@ const Event: React.FC<EventProps> = ({
                 whiteSpace: 'nowrap', // Prevent text from wrapping
                 cursor: event.type === 'exam' ? 'not-allowed' : 'pointer', // Disable cursor for exams
             }}
-            onClick={handleClick}
+            onClick={() => handleEventClick(event, event.type)}
         >
-            {isFirstSlot ? (
-                <div>
-                    {event.title}
-                </div>
-            ) : ''}
-        </div>
+            {
+                isFirstSlot ? (
+                    <div>
+                        {event.title}
+                    </div >
+                ) : ''}
+        </div >
     );
 };
 
