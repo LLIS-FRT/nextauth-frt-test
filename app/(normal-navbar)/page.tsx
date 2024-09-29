@@ -2,7 +2,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 
 export default function Home() {
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center">
+    <div className="h-full w-full flex flex-col items-center">
       <Card className="w-full max-w-lg p-6 bg-white shadow-lg rounded-lg">
         <CardHeader className="text-center">
           <h1 className="text-2xl font-bold text-gray-800">
