@@ -30,6 +30,7 @@ import { FormError } from "@/components/formError";
 import { MultiSelector, MultiSelectorContent, MultiSelectorInput, MultiSelectorItem, MultiSelectorList, MultiSelectorTrigger } from "@/components/ui/multiSelector";
 import { UserRole } from "@prisma/client";
 import { Switch } from "@/components/ui/switch";
+import { RoleGate } from "@/components/auth/roleGate";
 
 const formatRole = (role: UserRole) => {
     // Convert the role to a string
@@ -81,7 +82,7 @@ const SettingsPage = () => {
     const onSubmit = (values: z.infer<typeof SettingsSchema>) => {
         setError(undefined);
         setSuccess(undefined);
-        
+
         startTransition(() => {
             settings(values)
                 .then((data) => {
@@ -101,7 +102,7 @@ const SettingsPage = () => {
     }
     // TODO: Mobile responsive
     return (
-    <Card className="w-full sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px]">
+        <Card className="w-full sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px]">
             <CardHeader>
                 <p className="text-2xl font-semibold text-center">
                     ⚙️ Settings
@@ -223,32 +224,38 @@ const SettingsPage = () => {
                                     />
                                 </>
                             )}
-                            <FormField
-                                control={form.control}
-                                name="roles"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Roles</FormLabel>
-                                        <MultiSelector
-                                            loop
-                                            onValuesChange={field.onChange}
-                                            values={field.value}
-                                            disabled={isPending}
-                                        >
-                                            <MultiSelectorTrigger>
-                                                <MultiSelectorInput placeholder="Select your roles" />
-                                            </MultiSelectorTrigger>
-                                            <MultiSelectorContent>
-                                                <MultiSelectorList>
-                                                    {Object.values(UserRole).map((role) => (
-                                                        <MultiSelectorItem key={role} value={role}>{formatRole(role)}</MultiSelectorItem>
-                                                    ))}
-                                                </MultiSelectorList>
-                                            </MultiSelectorContent>
-                                        </MultiSelector>
-                                    </FormItem>
-                                )}
-                            />
+                            <RoleGate
+                                allowedRoles={[UserRole.ADMIN]}
+                                requireAll={false}
+                                showMessage
+                            >
+                                <FormField
+                                    control={form.control}
+                                    name="roles"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Roles</FormLabel>
+                                            <MultiSelector
+                                                loop
+                                                onValuesChange={field.onChange}
+                                                values={field.value}
+                                                disabled={isPending}
+                                            >
+                                                <MultiSelectorTrigger>
+                                                    <MultiSelectorInput placeholder="Select your roles" />
+                                                </MultiSelectorTrigger>
+                                                <MultiSelectorContent>
+                                                    <MultiSelectorList>
+                                                        {Object.values(UserRole).map((role) => (
+                                                            <MultiSelectorItem key={role} value={role}>{formatRole(role)}</MultiSelectorItem>
+                                                        ))}
+                                                    </MultiSelectorList>
+                                                </MultiSelectorContent>
+                                            </MultiSelector>
+                                        </FormItem>
+                                    )}
+                                />
+                            </RoleGate>
                             {user?.isOAuth === false && (
                                 <FormField
                                     control={form.control}

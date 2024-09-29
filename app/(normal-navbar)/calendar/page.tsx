@@ -3,16 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { RoleGate } from "@/components/auth/roleGate";
 import CustomCalendar from "@/components/CustCalendar/Calendar";
-import { AvailabilityEvent, EventBgColor, EventType, ExamEvent, OverlapEvent, ShiftEvent, TimeSlotProps } from "@/components/CustCalendar/types";
+import { AvailabilityEvent, EventBgColor, EventType, ExamEvent, OverlapEvent, ShiftEvent } from "@/components/CustCalendar/types";
 import { Availability, UserRole } from "@prisma/client";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import moment from 'moment';
 import { Exam } from 'webuntis';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { db } from '@/lib/db';
 import { AvailabilityModal } from '@/components/modals/availabilityModal';
 import { ShiftModal } from '@/components/modals/shiftModal';
 import { ExamModal } from '@/components/modals/examModal';

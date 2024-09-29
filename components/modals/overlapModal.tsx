@@ -120,7 +120,7 @@ export const OverlapModal = ({ modalOpen, setModalOpen, selectedEvent }: Overlap
             </Dialog>
 
             {/* Overlap Shift Modal */}
-            <OverlapShiftModal
+            <CreateShiftModal
                 modalOpen={createShiftModalOpen}
                 setModalOpen={setCreateShiftModalOpen}
                 users={users}
@@ -133,7 +133,7 @@ export const OverlapModal = ({ modalOpen, setModalOpen, selectedEvent }: Overlap
     );
 }
 
-export const OverlapShiftModal = ({ modalOpen, setModalOpen, users, handleBack }: CreateShiftModalProps) => {
+export const CreateShiftModal = ({ modalOpen, setModalOpen, users, handleBack }: CreateShiftModalProps) => {
     return (
         <div>
             <Dialog open={modalOpen} onOpenChange={() => setModalOpen((prev) => !prev)}>
