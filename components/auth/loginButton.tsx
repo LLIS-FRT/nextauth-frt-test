@@ -1,5 +1,6 @@
 "use client";
 
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 import { useRouter } from "next/navigation";
 import {
     Dialog,
@@ -8,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { LoginForm } from "@/components/auth/loginForm";
 import { useState } from "react";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 interface LoginButtonProps {
     children?: React.ReactNode;
@@ -32,6 +34,9 @@ export const LoginButton = ({
 
         return (
             <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+                <VisuallyHidden.Root>
+                    <DialogTitle>Login</DialogTitle>
+                </VisuallyHidden.Root>
                 <DialogTrigger asChild={asChild}>
                     {children}
                 </DialogTrigger>

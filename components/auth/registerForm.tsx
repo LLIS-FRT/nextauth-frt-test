@@ -21,6 +21,7 @@ import { FormError } from '@/components/formError';
 import { FormSuccess } from '@/components/formSuccess';
 import { register } from '@/actions/register';
 import { useState, useTransition } from 'react';
+import PasswordField from './PasswordField';
 
 export const RegisterForm = () => {
     const [error, setError] = useState<string | undefined>("");
@@ -106,12 +107,7 @@ export const RegisterForm = () => {
                                 <FormItem>
                                     <FormLabel>Password</FormLabel>
                                     <FormControl>
-                                        <Input
-                                            {...field}
-                                            disabled={isPending}
-                                            placeholder='******'
-                                            type='password'
-                                        />
+                                        <PasswordField disabled={isPending} field={field} placeholder="******" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

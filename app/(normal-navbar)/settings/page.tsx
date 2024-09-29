@@ -31,6 +31,7 @@ import { MultiSelector, MultiSelectorContent, MultiSelectorInput, MultiSelectorI
 import { UserRole } from "@prisma/client";
 import { Switch } from "@/components/ui/switch";
 import { RoleGate } from "@/components/auth/roleGate";
+import PasswordField from "@/components/auth/PasswordField";
 
 const formatRole = (role: UserRole) => {
     // Convert the role to a string
@@ -193,12 +194,7 @@ const SettingsPage = () => {
                                             <FormItem>
                                                 <FormLabel>Password</FormLabel>
                                                 <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder="******"
-                                                        type="password"
-                                                        disabled={isPending}
-                                                    />
+                                                    <PasswordField disabled={isPending} field={field} placeholder="******" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -211,12 +207,7 @@ const SettingsPage = () => {
                                             <FormItem>
                                                 <FormLabel>New Password</FormLabel>
                                                 <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder="******"
-                                                        type="password"
-                                                        disabled={isPending}
-                                                    />
+                                                    <PasswordField disabled={isPending} field={field} placeholder="******" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>

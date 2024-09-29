@@ -89,7 +89,6 @@ export const login = async (
     }
 
     try {
-        console.log(callbackUrl || DEFAULT_LOGIN_REDIRECT)
         await signIn("credentials", {
             email,
             password,
