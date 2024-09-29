@@ -38,7 +38,7 @@ const NormalLayout = ({ children }: ProtectedLayoutProps) => {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-col items-center justify-center ">
+      <div className={`flex flex-col items-center justify-center w-full h-[calc(100vh-${navHeight}px)]`}>
         {children}
       </div>
     </div>
