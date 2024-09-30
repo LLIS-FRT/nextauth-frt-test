@@ -81,7 +81,6 @@ export const Navbar = ({ height, routes }: { height: number, routes: Routes[] })
 
     const className = `bg-secondary flex justify-between items-center p-4 shadow-md relative min-h-[${height}px] max-h-[${height}px]`;
 
-    console.log(className);
     return (
         <nav className={className}>
             <div className="flex items-center justify-between w-full">

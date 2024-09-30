@@ -145,6 +145,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   Report    Report[]
+
+  createdShifts Shift[] @relation("CreatedShifts") // User confirming availabilities as the `confirmedBy`
+
+  Shifts   Shift[]  @relation(fields: [shiftIds], references: [id])
+  shiftIds String[] @db.ObjectId
 }
 
 model Account {
@@ -247,8 +252,40 @@ model Availability {
   endDate   DateTime
   confirmed Boolean
 
-  confirmedBy User?     @relation("ConfirmedAvailabilities", fields: [confirmedByuserId], references: [id])
   confirmedAt DateTime?
 
+  confirmedBy       User?   @relation("ConfirmedAvailabilities", fields: [confirmedByuserId], references: [id])
   confirmedByuserId String? @db.ObjectId
+}
+
+model Shift {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  users   User[]   @relation(fields: [userIds], references: [id])
+  userIds String[] @db.ObjectId
+
+  userPositions Json @default("{}")
+
+  startDate DateTime
+  endDate   DateTime
+
+  createdAt       DateTime?
+  createdBy       User?     @relation("CreatedShifts", fields: [createdByuserId], references: [id])
+  createdByuserId String?   @db.ObjectId
+
+  Team   Team?   @relation(fields: [teamId], references: [id])
+  teamId String? @db.ObjectId
+}
+
+model Team {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  name              String  @unique
+  shifts            Shift[]
+  status            Int     @default(6)
+  minUsers          Int     @default(1)
+  maxUsers          Int     @default(3)
+  possiblePositions Json    @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

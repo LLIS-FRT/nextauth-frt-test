@@ -81,7 +81,7 @@ export const POST = protectedRoute(async function POST(req, res) {
         data: finishedAvailabilities
     })
 
-    return new NextResponse("Not implemented yet", { status: 200 });
+    return new NextResponse("Availabilities created", { status: 200 });
 }, {
     allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
     requireAll: false // Set to true if you need all roles to be present

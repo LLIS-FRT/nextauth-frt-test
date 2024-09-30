@@ -6,6 +6,8 @@ import { Dialog, DialogOverlay, DialogContent, DialogTitle, DialogDescription, D
 import { Button } from '@/components/ui/button';
 import { User } from '@prisma/client';
 import { format } from 'date-fns';
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface OverlapModalProps {
     modalOpen: boolean;
@@ -17,6 +19,8 @@ interface CreateShiftModalProps {
     modalOpen: boolean;
     setModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     users: User[];
+    startDate: Date;
+    endDate: Date;
     handleBack: () => void;
 }
 
@@ -124,6 +128,8 @@ export const OverlapModal = ({ modalOpen, setModalOpen, selectedEvent }: Overlap
                 modalOpen={createShiftModalOpen}
                 setModalOpen={setCreateShiftModalOpen}
                 users={users}
+                startDate={startDate}
+                endDate={endDate}
                 handleBack={() => {
                     setCreateShiftModalOpen((prev) => !prev);
                     setModalOpen((prev) => !prev);
@@ -133,24 +139,106 @@ export const OverlapModal = ({ modalOpen, setModalOpen, selectedEvent }: Overlap
     );
 }
 
-export const CreateShiftModal = ({ modalOpen, setModalOpen, users, handleBack }: CreateShiftModalProps) => {
-    return (
-        <div>
-            <Dialog open={modalOpen} onOpenChange={() => setModalOpen((prev) => !prev)}>
-                <DialogOverlay className="fixed inset-0 bg-black/50 flex items-center justify-center" />
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Shift Creation Modal</DialogTitle>
-                        <DialogDescription>
-
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant={"outline"} onClick={handleBack}>Back</Button>
-                        <Button variant={"default"} onClick={() => setModalOpen((prev) => !prev)}>Create</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
-    )
+interface CreateShiftModalSubmitData {
+    endDate: Date;
+    startDate: Date;
+    createdByuserId: string;
+    teamId: string;
+    userIds: string[];
+    userPositions: string[];
 }
+
+// TODO:
+export const CreateShiftModal = ({ modalOpen, setModalOpen, users, startDate, endDate, handleBack }: CreateShiftModalProps) => {
+    const [createdByuserId, setCreatedByuserId] = useState<string>("");
+    const [teamId, setTeamId] = useState<string>("");
+    const [positions, setPositions] = useState<string[]>([]); // Positions will be fetched
+    const [userPositions, setUserPositions] = useState<{ [userId: string]: string }>({});
+
+    // Simulating API call to fetch positions based on the team
+    const fetchPositions = async (teamId: string) => {
+        // Simulated API call
+        // In production, replace this with actual API request to fetch positions for the selected team.
+        const fetchedPositions = ["chefAgres", "equipierBin", "stagiaireBin"]; // This will be dynamically fetched
+        setPositions(fetchedPositions);
+    };
+
+    useEffect(() => {
+        if (teamId) {
+            fetchPositions(teamId); // Fetch positions after team is selected
+        }
+    }, [teamId]);
+
+    const handlePositionChange = (userId: string, position: string) => {
+        setUserPositions((prev) => ({
+            ...prev,
+            [userId]: position,
+        }));
+    };
+
+    const submitData = () => {
+        const data: CreateShiftModalSubmitData = {
+            startDate,
+            endDate,
+            createdByuserId,
+            teamId,
+            userIds: users.map((user) => user.id),
+            userPositions: Object.values(userPositions),
+        };
+        console.log(data);
+    };
+
+    return (
+        <Dialog open={modalOpen} onOpenChange={() => setModalOpen((prev) => !prev)}>
+            <DialogOverlay className="fixed inset-0 bg-black/50 flex items-center justify-center" />
+            <DialogContent className="bg-white p-6 rounded-md max-w-lg w-full">
+                <DialogHeader>
+                    <DialogTitle>Create Shift</DialogTitle>
+                    <DialogDescription>Fill in the details to create a new shift.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    {/* Team Selection */}
+                    <Select onValueChange={setTeamId}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Team" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {/* Replace with dynamic team data */}
+                            <SelectItem value="1">FRT 1</SelectItem>
+                            <SelectItem value="2">FRT 2</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {/* Position Selection Label*/}
+                    {/* Positions will be displayed only after team is selected */}
+                    {teamId && positions.length > 0 && (
+                        <div>
+                            {users.map((user) => (
+                                <div key={user.id} className="space-y-2">
+                                    <label className="font-semibold">{user.firstName} {user.lastName}</label>
+                                    <Select onValueChange={(value) => handlePositionChange(user.id, value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Position" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {positions.map((position, index) => (
+                                                <SelectItem key={index} value={position}>
+                                                    {position}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <DialogFooter className="mt-4">
+                    <Button variant="outline" onClick={handleBack}>Back</Button>
+                    <Button variant="default" onClick={submitData}>Create</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
