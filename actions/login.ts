@@ -89,12 +89,21 @@ export const login = async (
     }
 
     try {
+        // Update lastActiveAt
+        await db.user.update({
+            where: {
+                id: existingUser.id
+            },
+            data: {
+                lastActiveAt: new Date()
+            }
+        });
+
         await signIn("credentials", {
             email,
             password,
             redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT
-        })
-
+        });
 
         return { success: "Logged in" };
     } catch (error) {

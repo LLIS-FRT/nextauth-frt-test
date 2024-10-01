@@ -150,6 +150,9 @@ model User {
 
   Shifts   Shift[]  @relation(fields: [shiftIds], references: [id])
   shiftIds String[] @db.ObjectId
+
+  lastActiveAt DateTime @default(now())
+  timeUntilExpiration Int @default(0)
 }
 
 model Account {

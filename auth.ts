@@ -109,7 +109,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 email: existingUser.email,
                 id: existingUser.id,
                 emailVerified: existingUser.emailVerified,
-                roles: existingUser.roles
+                roles: existingUser.roles,
             };
 
             // Initialize token.user if it doesn't exist
@@ -131,8 +131,25 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             // Set token expiration times based on activity
             const now = Math.floor(Date.now() / 1000); // Current time in seconds
 
-            if (user) token.exp = now + ACTIVE_EXPIRATION_MS / 1000;
-            else token.exp = now + INACTIVE_EXPIRATION_MS / 1000;
+            // Calculate token expiration based on activity
+            const tokenAge = now - Math.floor(new Date(existingUser.lastActiveAt).getTime() / 1000);
+            const timeUntilExpiration = INACTIVE_EXPIRATION_MS / 1000 - tokenAge;
+
+            console.log("Token will expire in", timeUntilExpiration, "seconds");
+
+            // Adjust token expiration based on activity
+            if (timeUntilExpiration <= 0) return null;
+
+            // Optionally, update the last-seen timestamp in the database if the user is active
+            if (timeUntilExpiration > 0) {
+                await db.user.update({
+                    where: { id: existingUser.id },
+                    data: { 
+                        lastActiveAt: new Date(),
+                        timeUntilExpiration: timeUntilExpiration
+                    }
+                });
+            }
 
             return token;
         }

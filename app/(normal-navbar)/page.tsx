@@ -1,6 +1,9 @@
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { currentUser } from "@/lib/auth";
 
-export default function Home() {
+export default async function Home() {
+  const user = await currentUser();
+
   return (
     <div className="h-full w-full flex flex-col items-center justify-center">
       <Card className="w-full max-w-lg p-6 bg-white shadow-lg rounded-lg">

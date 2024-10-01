@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { currentUser } from "@/lib/auth";
 import { Onboarding } from "@/components/auth/onboarding";
+import ExpiryCountdownPopUp from "@/components/auth/expiryCountdownPopUp";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,6 +44,7 @@ export default async function RootLayout({
       <html lang="en">
         <body className={inter.className}>
           <Toaster />
+          <ExpiryCountdownPopUp userID={user?.id} />
           {children}
         </body>
       </html>
