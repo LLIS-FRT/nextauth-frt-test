@@ -95,9 +95,9 @@ const ExpiryCountdownPopUp = ({ user }: { user: User | ExtendedUser | undefined 
         <div>
             {/* Popup notification */}
             {showPopup && (
-                <Dialog open={showPopup} >
+                <Dialog open={showPopup}>
                     <DialogOverlay className="fixed inset-0 bg-black opacity-30" />
-                    <DialogContent showCloseButton={false} className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-6 rounded-lg shadow-lg z-50">
+                    <DialogContent className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md p-6 rounded-lg shadow-lg z-50">
                         <DialogTitle className="text-lg font-semibold">Session Expiration Warning</DialogTitle>
                         <DialogDescription className="mt-2">
                             Your session will expire in {formatTimeLeft(timeLeft)} minutes. Would you like to stay logged in?
