@@ -152,7 +152,6 @@ model User {
   shiftIds String[] @db.ObjectId
 
   lastActiveAt DateTime @default(now())
-  timeUntilExpiration Int @default(0)
 }
 
 model Account {

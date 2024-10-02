@@ -10,6 +10,8 @@ import { getTwoFactorConfirmationByUserId } from "@/data/twoFactorConfirmation"
 import { JWT } from "next-auth/jwt"
 import { ExtendedUser } from "./next-auth"
 import { getAccountByUserId } from "./data/account"
+import { ACTIVE_EXPIRATION_MS, INACTIVE_EXPIRATION_MS } from "./constants"
+import { getTimeUntilExpiry } from "./lib/auth"
 
 declare module "next-auth" {
     /**
@@ -36,12 +38,10 @@ declare module "next-auth/jwt" {
             email: string;
             id: string;
             emailVerified: Date | null;
+            lastActiveAt: Date;
         }
     }
 }
-
-const INACTIVE_EXPIRATION_MS = 1000 * 60 * 30; // 30 minutes
-const ACTIVE_EXPIRATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
     events: {
@@ -97,6 +97,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             if (!existingUser) return token;
             const existingAccount = await getAccountByUserId(existingUser.id);
 
+            const lastActiveAt = new Date();
+
             // Create the user object
             const user: ExtendedUser = {
                 firstName: existingUser.firstName || "",
@@ -110,6 +112,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 id: existingUser.id,
                 emailVerified: existingUser.emailVerified,
                 roles: existingUser.roles,
+                lastActiveAt: lastActiveAt 
             };
 
             // Initialize token.user if it doesn't exist
@@ -127,15 +130,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             token.user.emailVerified = user.emailVerified;
             token.user.email = user.email;
             token.user.id = user.id;
+            token.user.lastActiveAt = lastActiveAt;
 
-            // Set token expiration times based on activity
-            const now = Math.floor(Date.now() / 1000); // Current time in seconds
-
-            // Calculate token expiration based on activity
-            const tokenAge = now - Math.floor(new Date(existingUser.lastActiveAt).getTime() / 1000);
-            const timeUntilExpiration = INACTIVE_EXPIRATION_MS / 1000 - tokenAge;
-
-            console.log("Token will expire in", timeUntilExpiration, "seconds");
+            const timeUntilExpiration = await getTimeUntilExpiry(existingUser);
 
             // Adjust token expiration based on activity
             if (timeUntilExpiration <= 0) return null;
@@ -144,10 +141,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             if (timeUntilExpiration > 0) {
                 await db.user.update({
                     where: { id: existingUser.id },
-                    data: { 
-                        lastActiveAt: new Date(),
-                        timeUntilExpiration: timeUntilExpiration
-                    }
+                    data: { lastActiveAt }
                 });
             }
 

@@ -44,7 +44,7 @@ export default async function RootLayout({
       <html lang="en">
         <body className={inter.className}>
           <Toaster />
-          <ExpiryCountdownPopUp userID={user?.id} />
+          <ExpiryCountdownPopUp user={user} />
           {children}
         </body>
       </html>
