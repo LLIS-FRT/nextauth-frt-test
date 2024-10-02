@@ -1,33 +1,40 @@
 "use client";
 import { useEffect, useState } from "react";
-import { User } from "@prisma/client";
+import { Session } from "@prisma/client";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogOverlay } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { LogoutButton } from "./logoutButton";
 import { getTimeUntilExpiry } from "@/lib/auth";
 import { SHOW_POPUP_DELAY_S } from "@/constants";
-import { ExtendedUser } from "@/next-auth";
 import { signOut } from "next-auth/react";
 
-// When to show the warning
+const formatTimeLeft = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    const minutesStr = minutes.toString().padStart(2, '0');
+    const secsStr = secs.toString().padStart(2, '0');
 
-const ExpiryCountdownPopUp = ({ user }: { user: User | ExtendedUser | undefined }) => {
+    return `${minutesStr}:${secsStr}`; // Format as MM:SS
+};
+
+const ExpiryCountdownPopUp = ({ dbSession }: { dbSession: Session | null | undefined }) => {
     const [showPopup, setShowPopup] = useState(false);
     const [loadingUser, setLoadingUser] = useState(true);
     const [timeLeft, setTimeLeft] = useState(0);
+    const isDev = process.env.NODE_ENV === 'development';
 
     // Fetch user data on component mount
     useEffect(() => {
-        if (!user) return;
+        if (!dbSession) return;
 
         const fetchUserData = async () => {
-            const time = await getTimeUntilExpiry(user);
+            const time = await getTimeUntilExpiry(dbSession);
             setTimeLeft(time);
             setLoadingUser(false);
         };
 
         fetchUserData();
-    }, [user]);
+    }, [dbSession]);
 
     // Update timeLeft every second
     useEffect(() => {
@@ -38,47 +45,33 @@ const ExpiryCountdownPopUp = ({ user }: { user: User | ExtendedUser | undefined 
                 const isMoreThanZero = newTime > 0;
                 const isLessThanOrEqualZero = newTime <= 0;
 
-                console.log({
-                    isLessThanShowPopupDelay,
-                    isMoreThanZero,
-                    isLessThanOrEqualZero,
-                    showPopup
-                });
-
                 const shouldShowPopup = isLessThanShowPopupDelay && isMoreThanZero;
 
                 if (shouldShowPopup && !showPopup) setShowPopup(true);
                 else if (!shouldShowPopup && showPopup) setShowPopup(false);
 
 
-                if (isLessThanOrEqualZero && user) {
-                    signOut().then(() => window.location.href = "/");
-                }
-
+                if (isLessThanOrEqualZero && dbSession) signOut().then(() => window.location.href = "/");
                 return newTime;
             }); // Decrease timeLeft every second
         }, 1000);
 
         // Clear the interval on component unmount
         return () => clearInterval(intervalId);
-    }, [showPopup, user]);
+    }, [showPopup, dbSession]);
 
-    if (!user) return null;
 
-    const formatTimeLeft = (seconds: number) => {
-        const minutes = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        const minutesStr = minutes.toString().padStart(2, '0');
-        const secsStr = secs.toString().padStart(2, '0');
-
-        return `${minutesStr}:${secsStr}`; // Format as MM:SS
-    };
-
-    if (loadingUser) return null;
-
+    if (!dbSession) {
+        if (isDev) return <div>DEV MSG: No Session</div>;
+        else return null
+    }
+    if (loadingUser) {
+        if (isDev) return <div>DEV MSG: Loading</div>;
+        else return null
+    }
 
     const handleRefresh = () => {
-        if (!user) return;
+        if (!dbSession) return;
         async function refresh() {
             const res = await fetch("/api/user");
             const user = await res.json();
@@ -93,6 +86,7 @@ const ExpiryCountdownPopUp = ({ user }: { user: User | ExtendedUser | undefined 
 
     return (
         <div>
+            {isDev && <div>DEV MSG: Time Left: {formatTimeLeft(timeLeft)} | Session ID: {dbSession.id}</div>}
             {/* Popup notification */}
             {showPopup && (
                 <Dialog open={showPopup}>

@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { INACTIVE_EXPIRATION_MS } from "@/constants";
-import { User, UserRole } from "@prisma/client";
+import { Session, User, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "./db";
 import { ExtendedUser } from "@/next-auth";
@@ -9,6 +9,21 @@ export const currentUser = async () => {
     const session = await auth();
 
     return session?.user;
+}
+
+export const currentDbSession = async () => {
+    const user = await currentUser();
+
+    const sessionid = user?.sessionId;
+
+    if (!sessionid) return null;
+
+    const session = await db.session.findUnique({
+        where: { id: sessionid },
+        include: { User: true }
+    })
+
+    return session;
 }
 
 export const currentRoles = async () => {
@@ -55,14 +70,14 @@ export function protectedRoute(handler: (req: NextRequest, params: any) => Promi
     };
 }
 
-export async function getTimeUntilExpiry(user: User | ExtendedUser | null | undefined): Promise<number> {
-    if (!user) return 0;
+export async function getTimeUntilExpiry(session: Session | null | undefined): Promise<number> {
+    if (!session) return 0;
 
     // Set token expiration times based on activity
     const now = Math.floor(Date.now() / 1000); // Current time in seconds
 
     // Calculate token expiration based on activity
-    const tokenAge = now - Math.floor(new Date(user.lastActiveAt).getTime() / 1000);
+    const tokenAge = now - Math.floor(new Date(session.lastActiveAt).getTime() / 1000);
     const timeUntilExpiration = INACTIVE_EXPIRATION_MS / 1000 - tokenAge;
 
     return timeUntilExpiration;

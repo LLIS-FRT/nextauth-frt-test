@@ -14,4 +14,5 @@ export type ExtendedUser = DefaultSession["user"] & {
     id: string;
     emailVerified: Date | null;
     lastActiveAt: Date;
+    sessionId?: string;
 };

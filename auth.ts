@@ -39,6 +39,7 @@ declare module "next-auth/jwt" {
             id: string;
             emailVerified: Date | null;
             lastActiveAt: Date;
+            sessionId?: string;
         }
     }
 }
@@ -55,6 +56,17 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 }
             })
         },
+        async signOut(message: any) {
+            const sessionId = message?.token?.user?.sessionId as string;
+            if (!sessionId) return;
+
+            await db.session.delete({
+                where: {
+                    id: sessionId
+                }
+            })
+        },
+
     },
     callbacks: {
         async signIn({ user, account }) {
@@ -84,65 +96,150 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             return true;
         },
         async session({ session, token }) {
-            if (session.user) session.user = token.user
+            session.user = token.user;
 
             return session;
         },
-        async jwt({ token }) {
-            // Ensure token.sub exists
-            if (!token.sub) return token;
+        // async jwt({ token, user }) {
+        //     if (user) {
+        //         // When a user logs in, create a session in the database
+        //         const session = await db.session.create({
+        //             data: {
+        //                 userId: user.id,
+        //                 createdAt: new Date(),
+        //                 updatedAt: new Date(),
+        //                 lastActiveAt: new Date(),
+        //             },
+        //         });
 
-            const existingUser = await getUserById(token.sub);
+        //         // Store the session ID in the token
+        //         token.user.sessionId = session.id;
+        //     }
+        //     // Ensure token.sub exists
+        //     if (!token.sub) return token;
 
-            if (!existingUser) return token;
-            const existingAccount = await getAccountByUserId(existingUser.id);
+        //     const existingUser = await getUserById(token.sub);
 
-            const lastActiveAt = new Date();
+        //     if (!existingUser) return token;
+        //     const existingAccount = await getAccountByUserId(existingUser.id);
 
-            // Create the user object
-            const user: ExtendedUser = {
-                firstName: existingUser.firstName || "",
-                lastName: existingUser.lastName || "",
-                studentClass: existingUser.studentClass || "",
-                isTwoFactorEnabled: existingUser.isTwoFactorEnabled,
-                isOAuth: Boolean(existingAccount),
-                IAM: existingUser.IAM?.toLowerCase(),
-                onboardingComplete: existingUser.onboardingComplete,
-                email: existingUser.email,
-                id: existingUser.id,
-                emailVerified: existingUser.emailVerified,
-                roles: existingUser.roles,
-                lastActiveAt: lastActiveAt 
-            };
+        //     const lastActiveAt = new Date();
 
-            // Initialize token.user if it doesn't exist
-            token.user = token.user || {}; // Ensure token.user is defined
+        //     // Create the user object
+        //     const userObj: ExtendedUser = {
+        //         firstName: existingUser.firstName || "",
+        //         lastName: existingUser.lastName || "",
+        //         studentClass: existingUser.studentClass || "",
+        //         isTwoFactorEnabled: existingUser.isTwoFactorEnabled,
+        //         isOAuth: Boolean(existingAccount),
+        //         IAM: existingUser.IAM?.toLowerCase(),
+        //         onboardingComplete: existingUser.onboardingComplete,
+        //         email: existingUser.email,
+        //         id: existingUser.id,
+        //         emailVerified: existingUser.emailVerified,
+        //         roles: existingUser.roles,
+        //         lastActiveAt: lastActiveAt,
+        //         sessionId: token.user.sessionId
+        //     };
 
-            // Assign user properties to token.user
-            token.user.firstName = user.firstName;
-            token.user.lastName = user.lastName;
-            token.user.studentClass = user.studentClass;
-            token.user.isOAuth = user.isOAuth;
-            token.user.IAM = user.IAM;
-            token.user.onboardingComplete = user.onboardingComplete;
-            token.user.roles = user.roles;
-            token.user.isTwoFactorEnabled = user.isTwoFactorEnabled;
-            token.user.emailVerified = user.emailVerified;
-            token.user.email = user.email;
-            token.user.id = user.id;
-            token.user.lastActiveAt = lastActiveAt;
+        //     // Initialize token.user if it doesn't exist
+        //     token.user = token.user || {}; // Ensure token.user is defined
 
-            const timeUntilExpiration = await getTimeUntilExpiry(existingUser);
+        //     // Assign user properties to token.user
+        //     token.user.firstName = userObj.firstName;
+        //     token.user.lastName = userObj.lastName;
+        //     token.user.studentClass = userObj.studentClass;
+        //     token.user.isOAuth = userObj.isOAuth;
+        //     token.user.IAM = userObj.IAM;
+        //     token.user.onboardingComplete = userObj.onboardingComplete;
+        //     token.user.roles = userObj.roles;
+        //     token.user.isTwoFactorEnabled = userObj.isTwoFactorEnabled;
+        //     token.user.emailVerified = userObj.emailVerified;
+        //     token.user.email = userObj.email;
+        //     token.user.id = userObj.id;
+        //     token.user.lastActiveAt = lastActiveAt;
 
-            // Adjust token expiration based on activity
-            if (timeUntilExpiration <= 0) return null;
+        //     const timeUntilExpiration = await getTimeUntilExpiry(existingUser);
 
-            // Optionally, update the last-seen timestamp in the database if the user is active
-            if (timeUntilExpiration > 0) {
+        //     // Adjust token expiration based on activity
+        //     if (timeUntilExpiration <= 0) return null;
+
+        //     // Optionally, update the last-seen timestamp in the database if the user is active
+        //     if (timeUntilExpiration > 0) {
+        //         await db.user.update({
+        //             where: { id: existingUser.id },
+        //             data: { lastActiveAt }
+        //         });
+        //     }
+
+        //     return token;
+        // }
+        async jwt({ token, user }) {
+            // When the user logs in (only during the first login), `user` will be available
+            if (user && user.id && user.email) {
+                // Create a new session in the database for the logged-in user
+                const session = await db.session.create({
+                    data: {
+                        userId: user.id,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                        lastActiveAt: new Date(),
+                    },
+                });
+
+                // Initialize the user object inside the token if it doesn't exist
+                token.user = {
+                    sessionId: session.id,
+                    id: user.id,
+                    email: user.email,
+                    emailVerified: null,
+                    isOAuth: false,
+                    lastActiveAt: new Date(),
+                };
+            } else if (token.user && token.sub) {
+                // For subsequent requests, ensure token.user exists and is assigned properly
+                const existingUser = await getUserById(token.sub); // `sub` contains the user ID
+                if (!existingUser) return token;
+
+                const lastActiveAt = new Date();
+                const existingAccount = await getAccountByUserId(existingUser.id);
+
+                // Populate token.user if not already done
+                token.user = {
+                    ...token.user, // Retain existing values
+                    firstName: existingUser.firstName || "",
+                    lastName: existingUser.lastName || "",
+                    studentClass: existingUser.studentClass || "",
+                    isTwoFactorEnabled: existingUser.isTwoFactorEnabled,
+                    isOAuth: Boolean(existingAccount),
+                    IAM: existingUser.IAM?.toLowerCase(),
+                    onboardingComplete: existingUser.onboardingComplete,
+                    email: existingUser.email,
+                    emailVerified: existingUser.emailVerified,
+                    roles: existingUser.roles,
+                    lastActiveAt: lastActiveAt,
+                };
+
+                // Optionally, update the user's last activity time in the database
                 await db.user.update({
                     where: { id: existingUser.id },
                     data: { lastActiveAt }
                 });
+
+                const session = await db.session.update({
+                    where: { id: token.user.sessionId },
+                    data: { lastActiveAt }
+                });
+
+                const timeUntilExpiration = await getTimeUntilExpiry(session);
+
+                // Adjust the token expiration based on activity
+                if (timeUntilExpiration <= 0) {
+                    await db.session.delete({
+                        where: { id: token.user.sessionId }
+                    })
+                    return null;
+                } // Expired session
             }
 
             return token;

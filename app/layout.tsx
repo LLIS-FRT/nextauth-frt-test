@@ -4,7 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/auth";
 import { Toaster } from "@/components/ui/sonner";
-import { currentUser } from "@/lib/auth";
+import { currentDbSession, currentUser } from "@/lib/auth";
 import { Onboarding } from "@/components/auth/onboarding";
 import ExpiryCountdownPopUp from "@/components/auth/expiryCountdownPopUp";
 
@@ -22,6 +22,7 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
   const user = await currentUser();
+  const dbSession = await currentDbSession();
 
   if (user && !user?.onboardingComplete) {
     return (
@@ -44,7 +45,7 @@ export default async function RootLayout({
       <html lang="en">
         <body className={inter.className}>
           <Toaster />
-          <ExpiryCountdownPopUp user={user} />
+          <ExpiryCountdownPopUp dbSession={dbSession} />
           {children}
         </body>
       </html>
