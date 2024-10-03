@@ -41,17 +41,16 @@ export const POST = protectedRoute(async function POST(req) {
     const body = await req.json();
     if (!body) return new NextResponse("Invalid body", { status: 400 });
 
-    const { endDate, startDate, createdByuserId, teamId, userIds, userPositions } = body;
+    const { endDate, startDate, createdByuserId, teamId, shiftUsers } = body;
 
-    if (!endDate || !startDate || !createdByuserId || !teamId || !userIds || !userPositions || !createdByuserId) {
+    if (!endDate || !startDate || !createdByuserId || !teamId || !shiftUsers || !createdByuserId) {
         const missing = [];
         if (!endDate) missing.push("endDate");
         if (!startDate) missing.push("startDate");
         if (!createdByuserId) missing.push("createdByuserId");
         if (!teamId) missing.push("teamId");
-        if (!userIds) missing.push("userIds");
-        if (!userPositions) missing.push("userPositions");
-        return new NextResponse(`Missing ${missing.join(", ")}`, { status: 400 });
+        if (!shiftUsers) missing.push("shiftUsers");
+        return new NextResponse(JSON.stringify(`Missing ${missing.join(", ")}`), { status: 400 });
     }
 
     // Check if the user creating the shift is the same as the logged in user
@@ -64,24 +63,25 @@ export const POST = protectedRoute(async function POST(req) {
     if (!team) return new NextResponse("Invalid team ID", { status: 400 });
 
     // Ensure that there are not more users than the team max and not less than the team min
-    if (userIds.length > team.maxUsers) return new NextResponse("Too many users for team", { status: 400 });
+    if (shiftUsers.length > team.maxUsers) return new NextResponse("Too many users for team", { status: 400 });
     // TODO: I think we will allow users to be less than the min
-    if (userIds.length < team.minUsers) return new NextResponse("Not enough users for team", { status: 400 }); 
+    if (shiftUsers.length < team.minUsers) return new NextResponse("Not enough users for team", { status: 400 });
+
+    const userIds = shiftUsers.map((user: any) => user.userId);
 
     // Check if all the users exist
     const users = await db.user.findMany({ where: { id: { in: userIds } } });
     if (users.length !== userIds.length) return new NextResponse("Invalid user ID", { status: 400 });
 
-    // Ensure the user positions are valid
-    if (userPositions.length !== userIds.length) return new NextResponse("Invalid user positions", { status: 400 });
-
     // Check if the user positions are valid
-    userPositions.forEach((position: string, index: number) => {
-        const userID = userIds[index];
-
-        const positions = JSON.stringify(team.possiblePositions);
-        if (!positions.includes(position)) return new NextResponse(`Invalid user position "${position}" for user with ID ${userID}`, { status: 400 });
+    shiftUsers.forEach((user: any) => {
+        if (!user.position) return new NextResponse("Invalid user position", { status: 400 });
+        const possiblePositions = team.possiblePositions?.toString().split(",");
+        if (!possiblePositions) return new NextResponse("Invalid user position", { status: 400 });
+        if (!possiblePositions.includes(user.position)) return new NextResponse("Invalid user position", { status: 400 });
     })
+
+    console.log(userIds);
 
     // Create the shift
     const shift = await db.shift.create({
@@ -91,7 +91,11 @@ export const POST = protectedRoute(async function POST(req) {
             createdByuserId: user.id,
             teamId: teamId,
             userIds: userIds,
-            userPositions: userPositions
+            userPositions: shiftUsers.map((user: any) => user.position),
+            users: {
+                connect: userIds.map((userId: string) => ({ id: userId })),
+            },
+            createdAt: new Date(),
         }
     });
 

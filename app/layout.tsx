@@ -44,9 +44,9 @@ export default async function RootLayout({
     <SessionProvider session={session}>
       <html lang="en">
         <body className={inter.className}>
-          <Toaster />
           {/* Pass dbSession to LastActiveManagerProvider */}
           <LastActiveManagerProvider dbSession={dbSession}>
+            <Toaster />
             <ExpiryCountdownPopUp />
             {children}
           </LastActiveManagerProvider>

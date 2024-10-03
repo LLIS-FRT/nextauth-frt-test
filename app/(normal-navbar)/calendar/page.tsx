@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { RoleGate } from "@/components/auth/roleGate";
 import CustomCalendar from "@/components/CustCalendar/Calendar";
 import { AvailabilityEvent, EventBgColor, EventType, ExamEvent, OverlapEvent, ShiftEvent } from "@/components/CustCalendar/types";
-import { Availability, UserRole } from "@prisma/client";
+import { Availability, Shift, UserRole } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import moment from 'moment';
@@ -40,6 +40,7 @@ const timeunits = [
 const CalendarPage = () => {
   const [exams, setExams] = useState<EventType[]>([]);
   const [availabilities, setAvailabilities] = useState<EventType[]>([]);
+  const [shifts, setShifts] = useState<EventType[]>([]);
 
   const [calEvents, setCalEvents] = useState<EventType[]>([]);
   const [loadingCalEvents, setLoadingCalEvents] = useState(true);
@@ -52,6 +53,7 @@ const CalendarPage = () => {
 
   const [refreshExams, setRefreshExams] = useState(false);
   const [refreshAvailabilities, setRefreshAvailabilities] = useState(false);
+  const [refreshShifts, setRefreshShifts] = useState(false);
 
   const user = useCurrentUser();
 
@@ -123,8 +125,36 @@ const CalendarPage = () => {
       setAvailabilities(availabilityEvents);
     }
 
+    const fetchShifts = async () => {
+      const id = user?.id || user?.IAM;
+      const response = await fetch(`/api/shift/user/${id}`);
+      const data = await response.json();
+
+      const shifts = data.shifts as Shift[];
+
+      const shiftEvents: ShiftEvent[] = shifts.map((shift) => {
+        const { startDate, endDate, id } = shift;
+
+        return {
+          backgroundColor: EventBgColor.coveredWithUser,
+          endDate: new Date(endDate),
+          startDate: new Date(startDate),
+          shiftType: 'coveredWithUser',
+          type: "shift",
+          title: `Shift`,
+          extendedProps: {
+            shift: shift
+          },
+          id
+        }
+      })
+
+      setShifts(shiftEvents);
+    }
+
     fetchExams();
     fetchAvailabilities();
+    fetchShifts();
   }, [user?.IAM, user?.id]);
 
   // Get exams on refresh
@@ -207,12 +237,46 @@ const CalendarPage = () => {
     setRefreshAvailabilities(false);
   }, [refreshAvailabilities, user?.IAM, user?.id]);
 
+  // Get availabilities on refresh
+  useEffect(() => {
+    if (!refreshShifts) return;
+    const fetchShifts = async () => {
+      const id = user?.id || user?.IAM;
+      const response = await fetch(`/api/shift/user/${id}`);
+      const data = await response.json();
+
+      const shifts = data.shifts as Shift[];
+
+      const shiftEvents: ShiftEvent[] = shifts.map((shift) => {
+        const { startDate, endDate, id } = shift;
+
+        return {
+          backgroundColor: EventBgColor.coveredWithUser,
+          endDate: new Date(endDate),
+          startDate: new Date(startDate),
+          shiftType: 'coveredWithUser',
+          type: "shift",
+          title: `Shift`,
+          extendedProps: {
+            shift: shift
+          },
+          id
+        }
+      })
+
+      setShifts(shiftEvents);
+    }
+
+    fetchShifts();
+    setRefreshShifts(false);
+  }, [refreshShifts, user?.IAM, user?.id]);
+
   // Set calendar events whenever availabilities or exams change
   useEffect(() => {
     setLoadingCalEvents(true);
-    setCalEvents([...availabilities, ...exams])
+    setCalEvents([...availabilities, ...exams, ...shifts]);
     setLoadingCalEvents(false);
-  }, [availabilities, exams]);
+  }, [availabilities, exams, shifts]);
 
   // Broken
   // TODO: Fix

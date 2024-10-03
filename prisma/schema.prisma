@@ -148,8 +148,8 @@ model User {
 
   createdShifts Shift[] @relation("CreatedShifts") // User confirming availabilities as the `confirmedBy`
 
-  Shifts   Shift[]  @relation(fields: [shiftIds], references: [id])
-  shiftIds String[] @db.ObjectId
+  Shifts  Shift[]  @relation("AssignedShifts", fields: [userIds], references: [id]) // User confirming availabilities as the `confirmedBy`
+  userIds String[] @db.ObjectId
 
   lastActiveAt DateTime @default(now())
 
@@ -160,8 +160,8 @@ model Session {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   lastActiveAt DateTime @default(now())
 
-  User         User?    @relation(fields: [userId], references: [id])
-  userId       String?  @db.ObjectId
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String? @db.ObjectId
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -276,7 +276,7 @@ model Availability {
 model Shift {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  users   User[]   @relation(fields: [userIds], references: [id])
+  users   User[]   @relation("AssignedShifts", fields: [userIds], references: [id])
   userIds String[] @db.ObjectId
 
   userPositions Json @default("{}")
@@ -285,6 +285,7 @@ model Shift {
   endDate   DateTime
 
   createdAt       DateTime?
+  
   createdBy       User?     @relation("CreatedShifts", fields: [createdByuserId], references: [id])
   createdByuserId String?   @db.ObjectId
 

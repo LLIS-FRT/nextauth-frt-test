@@ -9,6 +9,7 @@ import ProtectedPageClient from '@/components/auth/protectedPageClient';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { OverlapModal } from '@/components/modals/overlapModal';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const timeunits = [
   { name: '1', startTime: 800, endTime: 850 },
@@ -35,6 +36,8 @@ const ShiftManagerPage = () => {
 
   const [overlapModalOpen, setOverlapModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<OverlapEvent | null>(null);
+
+  const user = useCurrentUser();
 
   useEffect(() => {
     async function fetchAvailabilities() {
@@ -64,9 +67,7 @@ const ShiftManagerPage = () => {
     setCalEvents(newEvents);
   }, [availabilities]);
 
-  if (loading) {
-    return <div>Loading...</div>
-  }
+  if (loading) return <div>Loading...</div>
 
   return (
     <div className="h-full w-screen bg-white">
@@ -87,7 +88,7 @@ const ShiftManagerPage = () => {
         selectable={false}
         showlegend={false}
       />
-      <OverlapModal modalOpen={overlapModalOpen} setModalOpen={setOverlapModalOpen} selectedEvent={selectedEvent} />
+      <OverlapModal modalOpen={overlapModalOpen} setModalOpen={setOverlapModalOpen} selectedEvent={selectedEvent} currentUser={user}/>
     </div>
   );
 }

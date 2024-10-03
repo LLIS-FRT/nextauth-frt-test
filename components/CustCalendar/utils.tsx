@@ -148,20 +148,5 @@ export const eventStyle = (
         },
     };
 
-    // Ensure the document exists
-    if (!document) {
-        return textureStyles[EventBgTexture.Solid];
-    }
-
-    // Inject global styles for the striped texture
-    const styleSheet = document.createElement("style");
-    const textureClass = `global-event-bg {
-        background: ${textureStyles[texture]?.background || textureStyles[EventBgTexture.Solid].background};
-    }`;
-
-    styleSheet.type = "text/css";
-    styleSheet.appendChild(document.createTextNode(textureClass));
-    document.head.appendChild(styleSheet);
-
     return textureStyles[texture] || textureStyles[EventBgTexture.Solid];
 };

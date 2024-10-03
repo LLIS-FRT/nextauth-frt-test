@@ -14,13 +14,16 @@ const DayColumn: React.FC<DayColumnProps> = ({
     handleEventClick,
     selectable
 }) => {
-    const [windowSize, setWindowSize] = useState(window.innerWidth);
+    const [windowSize, setWindowSize] = useState<number>(700);
 
     const handleResize = () => {
+        if (window === undefined) return;
         setWindowSize(window.innerWidth);
     };
 
     useEffect(() => {
+        if (window === undefined) return;
+        setWindowSize(window.innerWidth);
         window.addEventListener('resize', handleResize);
         return () => {
             window.removeEventListener('resize', handleResize);
