@@ -32,7 +32,7 @@ export const LastActiveManagerProvider = ({ children, dbSession }: { children: R
     const [lastActive, setLastActive] = useState<Date | null>(null);
 
     const updateLastActive = useCallback(() => {
-        setLastActive(new Date());
+        if (dbSession) setLastActive(new Date());
         if (dbSession) {
             fetch('/api/user/keep-alive', {
                 method: 'POST',

@@ -1,10 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Session } from "@prisma/client";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogOverlay } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { LogoutButton } from "./logoutButton";
-import { currentDbSession, getTimeUntilExpiry } from "@/lib/auth";
+import { getTimeUntilExpiry } from "@/lib/auth";
 import { SHOW_POPUP_DELAY_S } from "@/constants";
 import { signOut } from "next-auth/react";
 import { useLastActive } from "@/providers/LastActiveManagerProvider";
