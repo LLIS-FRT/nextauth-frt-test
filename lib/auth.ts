@@ -70,14 +70,23 @@ export function protectedRoute(handler: (req: NextRequest, params: any) => Promi
     };
 }
 
-export async function getTimeUntilExpiry(session: Session | null | undefined): Promise<number> {
-    if (!session) return 0;
+interface GetTimeUntilExpiryProps {
+    session?: Session | null | undefined
+    lastActiveAt?: Date | null | undefined
+}
+
+export async function getTimeUntilExpiry({ session, lastActiveAt }: GetTimeUntilExpiryProps): Promise<number> {
+    if (!session && !lastActiveAt) return 0;
 
     // Set token expiration times based on activity
     const now = Math.floor(Date.now() / 1000); // Current time in seconds
 
+    const lastActiveAt_ = session?.lastActiveAt || lastActiveAt;
+
+    if (!lastActiveAt_) return 0;
+
     // Calculate token expiration based on activity
-    const tokenAge = now - Math.floor(new Date(session.lastActiveAt).getTime() / 1000);
+    const tokenAge = now - Math.floor(new Date(lastActiveAt_).getTime() / 1000);
     const timeUntilExpiration = INACTIVE_EXPIRATION_MS / 1000 - tokenAge;
 
     return timeUntilExpiration;

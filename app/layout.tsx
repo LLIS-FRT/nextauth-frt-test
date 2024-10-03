@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { currentDbSession, currentUser } from "@/lib/auth";
 import { Onboarding } from "@/components/auth/onboarding";
 import ExpiryCountdownPopUp from "@/components/auth/expiryCountdownPopUp";
+import { LastActiveManagerProvider } from "@/providers/LastActiveManagerProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,26 +28,28 @@ export default async function RootLayout({
   if (user && !user?.onboardingComplete) {
     return (
       <SessionProvider>
-        <html lang="en">
-          <body className={inter.className}>
-            <Toaster />
-            <Onboarding />
-          </body>
-        </html>
+        <LastActiveManagerProvider dbSession={dbSession}>
+          <html lang="en">
+            <body className={inter.className}>
+              <Toaster />
+              <Onboarding />
+            </body>
+          </html>
+        </LastActiveManagerProvider>
       </SessionProvider>
-    )
+    );
   }
-
-  // Here we can force users to look at stuff before they can do anything
-  // Such as policy updates
 
   return (
     <SessionProvider session={session}>
       <html lang="en">
         <body className={inter.className}>
           <Toaster />
-          <ExpiryCountdownPopUp dbSession={dbSession} />
-          {children}
+          {/* Pass dbSession to LastActiveManagerProvider */}
+          <LastActiveManagerProvider dbSession={dbSession}>
+            <ExpiryCountdownPopUp />
+            {children}
+          </LastActiveManagerProvider>
         </body>
       </html>
     </SessionProvider>

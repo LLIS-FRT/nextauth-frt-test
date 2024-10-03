@@ -4,9 +4,10 @@ import { Session } from "@prisma/client";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogOverlay } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { LogoutButton } from "./logoutButton";
-import { getTimeUntilExpiry } from "@/lib/auth";
+import { currentDbSession, getTimeUntilExpiry } from "@/lib/auth";
 import { SHOW_POPUP_DELAY_S } from "@/constants";
 import { signOut } from "next-auth/react";
+import { useLastActive } from "@/providers/LastActiveManagerProvider";
 
 const formatTimeLeft = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -17,24 +18,26 @@ const formatTimeLeft = (seconds: number) => {
     return `${minutesStr}:${secsStr}`; // Format as MM:SS
 };
 
-const ExpiryCountdownPopUp = ({ dbSession }: { dbSession: Session | null | undefined }) => {
+const ExpiryCountdownPopUp = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [loadingUser, setLoadingUser] = useState(true);
     const [timeLeft, setTimeLeft] = useState(0);
     const isDev = process.env.NODE_ENV === 'development';
 
+    const { lastActive, updateLastActive } = useLastActive(); // Access lastActive from the context
+
     // Fetch user data on component mount
     useEffect(() => {
-        if (!dbSession) return;
+        if (!lastActive) return;
 
         const fetchUserData = async () => {
-            const time = await getTimeUntilExpiry(dbSession);
+            const time = await getTimeUntilExpiry({ lastActiveAt: lastActive });
             setTimeLeft(time);
             setLoadingUser(false);
         };
 
         fetchUserData();
-    }, [dbSession]);
+    }, [lastActive]);
 
     // Update timeLeft every second
     useEffect(() => {
@@ -51,17 +54,17 @@ const ExpiryCountdownPopUp = ({ dbSession }: { dbSession: Session | null | undef
                 else if (!shouldShowPopup && showPopup) setShowPopup(false);
 
 
-                if (isLessThanOrEqualZero && dbSession) signOut().then(() => window.location.href = "/");
+                if (isLessThanOrEqualZero && lastActive) signOut().then(() => window.location.href = "/");
                 return newTime;
             }); // Decrease timeLeft every second
         }, 1000);
 
         // Clear the interval on component unmount
         return () => clearInterval(intervalId);
-    }, [showPopup, dbSession]);
+    }, [showPopup, lastActive]);
 
 
-    if (!dbSession) {
+    if (!lastActive) {
         if (isDev) return <div>DEV MSG: No Session</div>;
         else return null
     }
@@ -71,12 +74,10 @@ const ExpiryCountdownPopUp = ({ dbSession }: { dbSession: Session | null | undef
     }
 
     const handleRefresh = () => {
-        if (!dbSession) return;
+        if (!lastActive) return;
         async function refresh() {
-            const res = await fetch("/api/user");
-            const user = await res.json();
-
-            const time = await getTimeUntilExpiry(user);
+            await updateLastActive();
+            const time = await getTimeUntilExpiry({ lastActiveAt: lastActive });
             setTimeLeft(time);
             setShowPopup((prev) => !prev);
         }
@@ -86,7 +87,7 @@ const ExpiryCountdownPopUp = ({ dbSession }: { dbSession: Session | null | undef
 
     return (
         <div>
-            {isDev && <div>DEV MSG: Time Left: {formatTimeLeft(timeLeft)} | Session ID: {dbSession.id}</div>}
+            {isDev && <div>DEV MSG: Time Left: {formatTimeLeft(timeLeft)}</div>}
             {/* Popup notification */}
             {showPopup && (
                 <Dialog open={showPopup}>

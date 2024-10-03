@@ -231,7 +231,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     data: { lastActiveAt }
                 });
 
-                const timeUntilExpiration = await getTimeUntilExpiry(session);
+                const timeUntilExpiration = await getTimeUntilExpiry({ session });
 
                 // Adjust the token expiration based on activity
                 if (timeUntilExpiration <= 0) {
@@ -239,7 +239,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                         where: { id: token.user.sessionId }
                     })
                     return null;
-                } // Expired session
+                }
             }
 
             return token;
