@@ -21,7 +21,7 @@ const ExpiryCountdownPopUp = () => {
     const [showPopup, setShowPopup] = useState(false);
     const [loadingUser, setLoadingUser] = useState(true);
     const [timeLeft, setTimeLeft] = useState(0);
-    const isDev = true // process.env.NODE_ENV === 'development';
+    const isDev = process.env.NODE_ENV === 'development';
 
     const { lastActive, updateLastActive } = useLastActive(); // Access lastActive from the context
 
