@@ -75,13 +75,13 @@ interface GetTimeUntilExpiryProps {
     lastActiveAt?: Date | null | undefined
 }
 
-export async function getTimeUntilExpiry({ session, lastActiveAt }: GetTimeUntilExpiryProps): Promise<number> {
-    if (!session && !lastActiveAt) return 0;
+export async function getTimeUntilExpiry({ lastActiveAt }: GetTimeUntilExpiryProps): Promise<number> {
+    if (!lastActiveAt) return 0;
 
     // Set token expiration times based on activity
     const now = Math.floor(Date.now() / 1000); // Current time in seconds
 
-    const lastActiveAt_ = session?.lastActiveAt || lastActiveAt;
+    const lastActiveAt_ = lastActiveAt;
 
     if (!lastActiveAt_) return 0;
 
@@ -91,3 +91,45 @@ export async function getTimeUntilExpiry({ session, lastActiveAt }: GetTimeUntil
 
     return timeUntilExpiration;
 }
+
+// Define the protectedServerAction wrapper
+export const protectedServerAction = <T extends (...args: any[]) => Promise<any>>(
+    action: T,
+    options: {
+        allowedRoles?: UserRole[];
+        requireAll?: boolean;
+    }
+) => {
+    return async (...args: Parameters<T>): Promise<ReturnType<T>> => {
+        const user = await currentUser();
+
+        if (!user) throw new Error("User not found");
+        const { id } = user;
+
+        // Fetch user data
+        const validUser = await db.user.findUnique({
+            where: { id },    // Query using id otherwise
+            select: {
+                roles: true
+            }
+        });
+
+        if (!validUser) throw new Error("User not found");
+
+        const { allowedRoles = [], requireAll = false } = options;
+
+        // Check if allowed roles are defined
+        if (allowedRoles.length > 0) {
+            const hasRequiredRoles = requireAll
+                ? allowedRoles.every(role => validUser.roles.includes(role)) // User must have all roles
+                : allowedRoles.some(role => validUser.roles.includes(role)); // User can have any role
+
+            if (!hasRequiredRoles) {
+                throw new Error("Unauthorized: You do not have the required roles");
+            }
+        }
+
+        // Call the original action
+        return action(...args);
+    };
+};
