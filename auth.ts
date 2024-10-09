@@ -60,10 +60,21 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             const sessionId = message?.token?.user?.sessionId as string;
             if (!sessionId) return;
 
-            await db.session.delete({
+            const existingSession = await db.session.findUnique({
                 where: {
                     id: sessionId
                 }
+            })
+
+            const id = existingSession?.userId;
+            if (!id) return;
+
+            await db.session.delete({
+                where: {
+                    id
+                }
+            }).catch((err) => {
+                // The session has already been deleted
             })
         },
 
@@ -199,7 +210,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             } else if (token.user && token.sub) {
                 // For subsequent requests, ensure token.user exists and is assigned properly
                 const existingUser = await getUserById(token.sub); // `sub` contains the user ID
-                if (!existingUser) return token;
+                if (!existingUser) return null;
 
                 const lastActiveAt = new Date();
                 const existingAccount = await getAccountByUserId(existingUser.id);
@@ -220,26 +231,31 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     lastActiveAt: lastActiveAt,
                 };
 
-                // Optionally, update the user's last activity time in the database
-                await db.user.update({
-                    where: { id: existingUser.id },
-                    data: { lastActiveAt }
-                });
+                const oldSession = await db.session.findUnique({ where: { id: token.user.sessionId }, select: { lastActiveAt: true, id: true } });
+                const oldSessionLastActiveAt = oldSession?.lastActiveAt;
 
-                const session = await db.session.update({
-                    where: { id: token.user.sessionId },
-                    data: { lastActiveAt }
-                });
+                if (!oldSession == null || !oldSessionLastActiveAt) {
+                    console.info('No old session found for user\nLogging out user');
+                    return null;
+                }
 
-                const timeUntilExpiration = await getTimeUntilExpiry({ session });
+                const timeUntilExpiration = await getTimeUntilExpiry({ lastActiveAt: oldSessionLastActiveAt });
 
                 // Adjust the token expiration based on activity
                 if (timeUntilExpiration <= 0) {
                     await db.session.delete({
-                        where: { id: token.user.sessionId }
+                        where: { id: oldSession.id }
+                    }).catch((err) => {
+                        // The session has already been deleted
                     })
                     return null;
                 }
+
+                // Update the last-seen timestamp in the database
+                await db.session.update({
+                    where: { id: oldSession.id },
+                    data: { lastActiveAt }
+                });
             }
 
             return token;

@@ -52,7 +52,6 @@ const ExpiryCountdownPopUp = () => {
                 if (shouldShowPopup && !showPopup) setShowPopup(true);
                 else if (!shouldShowPopup && showPopup) setShowPopup(false);
 
-
                 if (isLessThanOrEqualZero && lastActive) signOut().then(() => window.location.href = "/");
                 return newTime;
             }); // Decrease timeLeft every second
