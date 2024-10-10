@@ -81,8 +81,6 @@ export const POST = protectedRoute(async function POST(req) {
         if (!possiblePositions.includes(user.position)) return new NextResponse("Invalid user position", { status: 400 });
     })
 
-    console.log(userIds);
-
     // Create the shift
     const shift = await db.shift.create({
         data: {

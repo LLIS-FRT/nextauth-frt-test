@@ -1,15 +1,15 @@
 "use client";
 
-import { Availability, UserRole, User } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import { useEffect, useState } from 'react';
 import moment from 'moment'; // Import if you still plan on using moment
 import { EventBgColor, EventType, OverlapEvent } from '@/components/CustCalendar/types';
 import Calendar from '@/components/CustCalendar/Calendar';
 import ProtectedPageClient from '@/components/auth/protectedPageClient';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { OverlapModal } from '@/components/modals/overlapModal';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useQuery } from '@tanstack/react-query';
+import { getAvailabilities, LimitedAvailability } from '@/actions/data/availability';
 
 const timeunits = [
   { name: '1', startTime: 800, endTime: 850 },
@@ -30,30 +30,30 @@ const timeunits = [
 ];
 
 const ShiftManagerPage = () => {
-  const [availabilities, setAvailabilities] = useState<Availability[]>([]);
+  const [availabilities, setAvailabilities] = useState<LimitedAvailability[]>([]);
   const [calEvents, setCalEvents] = useState<EventType[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const [overlapModalOpen, setOverlapModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<OverlapEvent | null>(null);
 
   const user = useCurrentUser();
 
-  useEffect(() => {
-    async function fetchAvailabilities() {
-      const res = await fetch('/api/availability');
-      const data = await res.json();
-      setAvailabilities(data.availabilities);
-      setLoading(false);
-    };
+  const { isLoading: loadingAvailabilities, refetch: refetchAvailabilities } = useQuery({
+    queryKey: ["availabilities"],
+    queryFn: async () => {
+      const res = await getAvailabilities(undefined);
+      const { availabilities } = res;
 
-    fetchAvailabilities();
-  }, []);
+      setAvailabilities(availabilities);
+      return availabilities;
+    },
+  })
 
   useEffect(() => {
     // Determine overlaps after availabilities are loaded
     const overlaps = getOverlapAvailabilities(availabilities);
 
+    console.log(overlaps);
     // Remove duplicate events
     const uniqueEvents = new Map();
     overlaps.forEach((event) => {
@@ -67,7 +67,7 @@ const ShiftManagerPage = () => {
     setCalEvents(newEvents);
   }, [availabilities]);
 
-  if (loading) return <div>Loading...</div>
+  if (loadingAvailabilities) return <div>Loading...</div>
 
   return (
     <div className="h-full w-screen bg-white">
@@ -88,14 +88,14 @@ const ShiftManagerPage = () => {
         selectable={false}
         showlegend={false}
       />
-      <OverlapModal modalOpen={overlapModalOpen} setModalOpen={setOverlapModalOpen} selectedEvent={selectedEvent} currentUser={user}/>
+      {overlapModalOpen && <OverlapModal modalOpen={overlapModalOpen} setModalOpen={setOverlapModalOpen} selectedEvent={selectedEvent} currentUser={user} />}
     </div>
   );
 }
 
 export default ProtectedPageClient(ShiftManagerPage, { allowedRoles: [UserRole.ADMIN], requireAll: false });
 
-const getOverlapAvailabilities = (availabilities: Availability[]): EventType[] => {
+const getOverlapAvailabilities = (availabilities: LimitedAvailability[]): EventType[] => {
   const overlaps: EventType[] = [];
 
   if (availabilities.length < 2) return overlaps;

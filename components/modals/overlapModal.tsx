@@ -9,6 +9,10 @@ import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ExtendedUser } from '@/next-auth';
 import { toast } from 'sonner';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createShift } from '@/actions/data/shift';
+import { createAvailability, deleteAvailability } from '@/actions/data/availability';
+import { getTeams, LimitedTeam } from '@/actions/data/team';
 
 interface OverlapModalProps {
     modalOpen: boolean;
@@ -70,7 +74,7 @@ export const OverlapModal = ({ modalOpen, setModalOpen, selectedEvent, currentUs
 
     if (!selectedEvent) return null;
 
-    const { backgroundColor, endDate, id, startDate, title, type } = selectedEvent;
+    const { endDate, startDate } = selectedEvent;
 
     const handleCreateShift = () => {
         setCreateShiftModalOpen((prev) => !prev);
@@ -168,10 +172,47 @@ const formatPositionName = (position: string): string => {
 }
 
 export const CreateShiftModal = ({ modalOpen, setModalOpen, users, startDate, endDate, handleBack, createdByuserId, availabilities }: CreateShiftModalProps) => {
-    const [teams, setTeams] = useState<Team[]>([]);
+    const [teams, setTeams] = useState<LimitedTeam[]>([]);
     const [teamId, setTeamId] = useState<string>("");
     const [positions, setPositions] = useState<string[]>([]);
     const [userPositions, setUserPositions] = useState<{ [userId: string]: string }>({});
+
+    const queryClient = useQueryClient();
+
+    const { mutateAsync: server_createShift } = useMutation({
+        mutationFn: createShift,
+        onSuccess: () => {
+            toast.success("Shift created successfully");
+            setModalOpen(false);
+
+            queryClient.invalidateQueries({ queryKey: ["shifts"] });
+        },
+        onError: () => {
+            toast.error("Failed to create shift");
+        }
+    });
+
+    const { mutateAsync: server_createAvailability } = useMutation({
+        mutationFn: createAvailability,
+        onError: () => toast.error("Failed to create availability"),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["availabilities"] })
+    });
+
+    const { mutateAsync: server_deleteAvailability } = useMutation({
+        mutationFn: deleteAvailability,
+        onError: () => toast.error("Failed to delete availability"),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["availabilities"] }),
+    });
+
+    const { isLoading: loadingTeams, refetch: refetchTeams } = useQuery({
+        queryKey: ["teams"],
+        queryFn: async () => {
+            const { teams } = await getTeams(undefined);
+
+            setTeams(teams);
+            return teams;
+        },
+    })
 
     useEffect(() => {
         if (!modalOpen) {
@@ -182,29 +223,13 @@ export const CreateShiftModal = ({ modalOpen, setModalOpen, users, startDate, en
     }, [modalOpen]);
 
     useEffect(() => {
-        const fetchTeams = async () => {
-            // Simulated API call
-            const res = await fetch("/api/team");
-            const team = await res.json();
-            setTeams(team);
-        };
-
-        fetchTeams();
-    }, []);
-
-    useEffect(() => {
         if (teamId) {
-            const teamPositions = teams.find((team) => team.id === teamId)?.possiblePositions;
-
-            const possiblePositions: string[] = [];
-            if (teamPositions) Object.keys(teamPositions).forEach((key) => possiblePositions.push(key));
-
-            setPositions(possiblePositions);
+            const teamPositions = teams.find((team) => team.id === teamId)?.possiblePositions || [];
+            setPositions(teamPositions);
         }
     }, [teamId, teams]);
 
     if (!createdByuserId) return null;
-
     const handlePositionChange = (userId: string, position: string) => {
         setUserPositions((prev) => {
             if (prev[userId] === position) {
@@ -244,66 +269,48 @@ export const CreateShiftModal = ({ modalOpen, setModalOpen, users, startDate, en
 
         // We now look at the different availabilities
         for (const availability of availabilities) {
-            const { startDate, endDate, userId } = availability;
+            const { startDate: availabilityStartDate, endDate: availabilityEndDate, userId } = availability;
+            const { startDate: shiftStartDate, endDate: shiftEndDate } = data;
 
             const newAvailabilities = [];
-            // In here we have to see if the availability has any time before or after the shift
-            // If yes, create a new mock availability
-            const startsBefore = startDate < data.startDate;
-            const endsAfter = endDate > data.endDate;
+            // This is to check if the availability starts before
+            const startsBefore = availabilityStartDate < shiftStartDate && availabilityStartDate != shiftStartDate;
 
-            if (startsBefore) {
-                newAvailabilities.push({
-                    startDate: data.startDate,
-                    endDate: startDate,
-                    confirmed: false,
-                });
-            }
+            // This is to check if the availability ends after
+            const endsAfter = shiftEndDate < availabilityEndDate && shiftEndDate != availabilityEndDate;
 
-            if (endsAfter) {
-                newAvailabilities.push({
-                    startDate: endDate,
-                    endDate: data.endDate,
-                    confirmed: false,
-                });
-            }
-
-            await fetch(`/api/availability/id/${availability.id}`, {
-                method: "DELETE",
+            if (startsBefore) newAvailabilities.push({
+                startDate: availabilityStartDate,
+                endDate: shiftStartDate,
+                userId
             });
 
-            await fetch(`/api/availability/user/${userId}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(newAvailabilities),
+            if (endsAfter) newAvailabilities.push({
+                startDate: shiftEndDate,
+                endDate: availabilityEndDate,
+                userId
             });
-        }
 
-        const res = await fetch("/api/shift", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
-        })
+            await server_deleteAvailability(availability.id);
 
-        try {
-            const resData = await res.json();
-
-            if (res.ok) {
-                toast.success("Shift created successfully");
-                setModalOpen(false);
-            } else {
-                toast.error(resData.message);
+            for (const newAvailability of newAvailabilities) {
+                await server_createAvailability(newAvailability);
             }
-        } catch (error) {
-            toast.error("Something went wrong. Please try again");
         }
+
+        await server_createShift({
+            createdByuserId: data.createdByuserId,
+            endDate: data.endDate,
+            startDate: data.startDate,
+            teamId: data.teamId,
+            userIds: data.shiftUsers.map((user) => user.userId),
+            userPositions: data.shiftUsers.map((user) => user.position),
+        });
     };
 
     const selectedPositions = Object.values(userPositions);
+
+    if (loadingTeams) return <div>Loading...</div>;
 
     return (
         <Dialog open={modalOpen} onOpenChange={() => setModalOpen((prev) => !prev)}>
@@ -315,18 +322,22 @@ export const CreateShiftModal = ({ modalOpen, setModalOpen, users, startDate, en
                 </DialogHeader>
                 <div className="space-y-4">
                     {/* Team Selection */}
-                    <Select onValueChange={setTeamId}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Team" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {teams.map((team) => (
-                                <SelectItem key={team.id} value={team.id}>
-                                    {team.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    {loadingTeams ? (
+                        <div>Loading...</div>
+                    ) : (
+                        <Select onValueChange={setTeamId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select Team" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {teams.map((team) => (
+                                    <SelectItem key={team.id} value={team.id}>
+                                        {team.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
 
                     {/* Position Selection Label */}
                     {teamId && positions.length > 0 && (

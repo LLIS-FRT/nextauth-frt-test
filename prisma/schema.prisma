@@ -284,23 +284,23 @@ model Shift {
   startDate DateTime
   endDate   DateTime
 
-  createdAt       DateTime?
-  
-  createdBy       User?     @relation("CreatedShifts", fields: [createdByuserId], references: [id])
-  createdByuserId String?   @db.ObjectId
+  createdAt DateTime?
+
+  createdBy       User?   @relation("CreatedShifts", fields: [createdByuserId], references: [id])
+  createdByuserId String? @db.ObjectId
 
   Team   Team?   @relation(fields: [teamId], references: [id])
   teamId String? @db.ObjectId
 }
 
 model Team {
-  id                String  @id @default(auto()) @map("_id") @db.ObjectId
-  name              String  @unique
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  name              String   @unique
   shifts            Shift[]
-  status            Int     @default(6)
-  minUsers          Int     @default(1)
-  maxUsers          Int     @default(3)
-  possiblePositions Json    @default("{}")
+  status            Int      @default(6)
+  minUsers          Int      @default(1)
+  maxUsers          Int      @default(3)
+  possiblePositions String[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

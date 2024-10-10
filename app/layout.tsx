@@ -8,6 +8,7 @@ import { currentDbSession, currentUser } from "@/lib/auth";
 import { Onboarding } from "@/components/auth/onboarding";
 import ExpiryCountdownPopUp from "@/components/auth/expiryCountdownPopUp";
 import { LastActiveManagerProvider } from "@/providers/LastActiveManagerProvider";
+import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -48,7 +49,9 @@ export default async function RootLayout({
           <LastActiveManagerProvider dbSession={dbSession}>
             <Toaster />
             <ExpiryCountdownPopUp />
-            {children}
+            <ReactQueryProvider>
+              {children}
+            </ReactQueryProvider>
           </LastActiveManagerProvider>
         </body>
       </html>

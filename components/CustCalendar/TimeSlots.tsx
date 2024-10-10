@@ -194,11 +194,10 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
         return isToday;
     }
 
-    const isBeforeNow = (slot: TimeUnit, day: Date): Boolean => {
+    const isBeforeNow = (time: number, day: Date): Boolean => {
         const now = new Date();
 
-        const { endTime } = slot;
-        const formatStartTime = endTime.toString().padStart(4, '0');
+        const formatStartTime =  time.toString().padStart(4, '0');
         const formatNowTime = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
 
         const dayYear = day.getFullYear();
@@ -230,14 +229,14 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
             {isToday(day) && <Timeline />}
             <div>
                 {allSlots.map((slot, index) => {
-                    const selectable = !isBeforeNow(slot, day);
+                    const selectable = !isBeforeNow(slot.startTime, day);
                     // If selectable is true, we now check if selectable_ is true
                     // if selectable_ is true, we set selectable to true
                     // if selectable_ is false, we set selectable to false
 
                     const finalSelectable = selectable && selectable_;
                     return (
-                        <div key={index} className={`${isBeforeNow(slot, day) ? 'bg-blue-200/25' : ''}`}>
+                        <div key={index} className={`${isBeforeNow(slot.endTime, day) ? 'bg-blue-200/25' : ''}`}>
                             <TimeSlot
                                 events={findTodayEvents(slot, day)}
                                 handleEventClick={handleEventClick}

@@ -4,15 +4,18 @@ import React, { useEffect, useState } from 'react';
 import { RoleGate } from "@/components/auth/roleGate";
 import CustomCalendar from "@/components/CustCalendar/Calendar";
 import { AvailabilityEvent, EventBgColor, EventType, ExamEvent, OverlapEvent, ShiftEvent } from "@/components/CustCalendar/types";
-import { Availability, Shift, UserRole } from "@prisma/client";
+import { Availability, UserRole } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import moment from 'moment';
-import { Exam } from 'webuntis';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { AvailabilityModal } from '@/components/modals/availabilityModal';
 import { ShiftModal } from '@/components/modals/shiftModal';
 import { ExamModal } from '@/components/modals/examModal';
+import { getExams } from '@/actions/data/exams';
+import { getShifts } from '@/actions/data/shift';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createAvailability, getAvailabilitiesByUser } from '@/actions/data/availability';
 
 interface EventValidationError {
   startDate: Date;
@@ -52,19 +55,90 @@ const CalendarPage = () => {
   const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
 
   const [refreshExams, setRefreshExams] = useState(false);
-  const [refreshAvailabilities, setRefreshAvailabilities] = useState(false);
   const [refreshShifts, setRefreshShifts] = useState(false);
 
+  const queryClient = useQueryClient();
+
   const user = useCurrentUser();
+  const id = user?.id || user?.IAM;
+  const isIAM = user?.id ? false : true;
+
+  const { refetch: refetchAvailabilitiesByUser, isLoading } = useQuery({
+    queryKey: ["availabilities", id, isIAM],
+    queryFn: async () => {
+      if (!id) return;
+      const availabilities = await getAvailabilitiesByUser(id, isIAM);
+
+      const availabilityEvents: AvailabilityEvent[] = availabilities.map((availability) => {
+        const { endDate, startDate, id } = availability;
+
+        return {
+          backgroundColor: EventBgColor.Availability,
+          endDate: new Date(endDate),
+          startDate: new Date(startDate),
+          id,
+          title: `Availability`,
+          type: "availability",
+        }
+      })
+
+      setAvailabilities(availabilityEvents);
+
+      return availabilities;
+    },
+  })
+
+  const { refetch: refetchShifts, isLoading: isLoadingShifts } = useQuery({
+    queryKey: ["shifts"],
+    queryFn: async () => {
+      if (!id) return;
+      const { shifts } = await getShifts(undefined);
+
+      const shiftEvents: ShiftEvent[] = shifts.map((shift) => {
+        const { startDate, endDate, id } = shift;
+
+        return {
+          backgroundColor: EventBgColor.coveredWithUser,
+          endDate: new Date(endDate),
+          startDate: new Date(startDate),
+          shiftType: 'coveredWithUser',
+          type: "shift",
+          title: `Shift`,
+          extendedProps: {
+            shift: shift
+          },
+          id
+        }
+      })
+
+      setShifts(shiftEvents);
+      return shifts;
+    },
+  })
+
+  const { mutateAsync: server_createAvailability, isPending: isPendingAvailability } = useMutation({
+    mutationFn: createAvailability,
+    onError: () => {
+      toast.error("Failed to create availability");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["availabilities"] });
+    },
+  });
 
   // Fetch exam data and availability data on component mount
   useEffect(() => {
-    const fetchExams = async () => {
-      const id = user?.id || user?.IAM;
-      const response = await fetch(`/api/exams/${id}`);
-      const data = await response.json();
+    const id = user?.id || user?.IAM;
+    if (!id) return;
 
-      const exams = data.exams as Exam[];
+    const fetchExams = async () => {
+      const res = await getExams({
+        id: id,
+        IAM: user?.id ? false : true,
+      });
+
+      const { exams } = res;
+
       const examEvents: EventType[] = exams.map((exam) => {
         const { startTime, endTime, examDate } = exam;
 
@@ -102,59 +176,7 @@ const CalendarPage = () => {
       setExams(examEvents);
     }
 
-    const fetchAvailabilities = async () => {
-      const id = user?.id || user?.IAM;
-      const response = await fetch(`/api/availability/user/${id}`);
-      const data = await response.json();
-
-      const availabilities = data.availabilities as Availability[];
-
-      const availabilityEvents: AvailabilityEvent[] = availabilities.map((availability) => {
-        const { startDate, endDate, userId, id } = availability;
-
-        return {
-          backgroundColor: EventBgColor.Availability,
-          endDate: new Date(endDate),
-          startDate: new Date(startDate),
-          id,
-          title: `Availability`,
-          type: "availability",
-        }
-      })
-
-      setAvailabilities(availabilityEvents);
-    }
-
-    const fetchShifts = async () => {
-      const id = user?.id || user?.IAM;
-      const response = await fetch(`/api/shift/user/${id}`);
-      const data = await response.json();
-
-      const shifts = data.shifts as Shift[];
-
-      const shiftEvents: ShiftEvent[] = shifts.map((shift) => {
-        const { startDate, endDate, id } = shift;
-
-        return {
-          backgroundColor: EventBgColor.coveredWithUser,
-          endDate: new Date(endDate),
-          startDate: new Date(startDate),
-          shiftType: 'coveredWithUser',
-          type: "shift",
-          title: `Shift`,
-          extendedProps: {
-            shift: shift
-          },
-          id
-        }
-      })
-
-      setShifts(shiftEvents);
-    }
-
     fetchExams();
-    fetchAvailabilities();
-    fetchShifts();
   }, [user?.IAM, user?.id]);
 
   // Get exams on refresh
@@ -162,10 +184,14 @@ const CalendarPage = () => {
     if (!refreshExams) return;
     const fetchExams = async () => {
       const id = user?.id || user?.IAM;
-      const response = await fetch(`/api/exams/${id}`);
-      const data = await response.json();
+      if (!id) return;
+      const res = await getExams({
+        id: id,
+        IAM: user?.id ? false : true,
+      });
 
-      const exams = data.exams as Exam[];
+      const { exams } = res;
+
       const examEvents: EventType[] = exams.map((exam) => {
         const { startTime, endTime, examDate } = exam;
 
@@ -207,70 +233,6 @@ const CalendarPage = () => {
     setRefreshExams(false);
   }, [user?.IAM, user?.id, refreshExams]);
 
-  // Get availabilities on refresh
-  useEffect(() => {
-    if (!refreshAvailabilities) return;
-    const fetchAvailabilities = async () => {
-      const id = user?.id || user?.IAM;
-      const response = await fetch(`/api/availability/user/${id}`);
-      const data = await response.json();
-
-      const availabilities = data.availabilities as Availability[];
-
-      const availabilityEvents: AvailabilityEvent[] = availabilities.map((availability) => {
-        const { startDate, endDate, userId, id } = availability;
-
-        return {
-          backgroundColor: EventBgColor.Availability,
-          endDate: new Date(endDate),
-          startDate: new Date(startDate),
-          id,
-          title: `Availability`,
-          type: "availability",
-        }
-      })
-
-      setAvailabilities(availabilityEvents);
-    }
-
-    fetchAvailabilities();
-    setRefreshAvailabilities(false);
-  }, [refreshAvailabilities, user?.IAM, user?.id]);
-
-  // Get availabilities on refresh
-  useEffect(() => {
-    if (!refreshShifts) return;
-    const fetchShifts = async () => {
-      const id = user?.id || user?.IAM;
-      const response = await fetch(`/api/shift/user/${id}`);
-      const data = await response.json();
-
-      const shifts = data.shifts as Shift[];
-
-      const shiftEvents: ShiftEvent[] = shifts.map((shift) => {
-        const { startDate, endDate, id } = shift;
-
-        return {
-          backgroundColor: EventBgColor.coveredWithUser,
-          endDate: new Date(endDate),
-          startDate: new Date(startDate),
-          shiftType: 'coveredWithUser',
-          type: "shift",
-          title: `Shift`,
-          extendedProps: {
-            shift: shift
-          },
-          id
-        }
-      })
-
-      setShifts(shiftEvents);
-    }
-
-    fetchShifts();
-    setRefreshShifts(false);
-  }, [refreshShifts, user?.IAM, user?.id]);
-
   // Set calendar events whenever availabilities or exams change
   useEffect(() => {
     setLoadingCalEvents(true);
@@ -308,21 +270,20 @@ const CalendarPage = () => {
 
     // If the dbAvailabilities array is not empty, save it to the database
     if (dbAvailabilities.length > 0 && errors.length === 0) {
-      const userID = user?.id || user?.IAM;
+      const userID = user?.id;
       if (!userID) throw new Error('User ID not found');
 
-      // Send post request
-      fetch(`/api/availability/user/${userID}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dbAvailabilities),
-      });
+      for (const availability of dbAvailabilities) {
+        server_createAvailability({
+          endDate: availability.endDate,
+          startDate: availability.startDate,
+          userId: userID
+        });
+      }
     }
 
     displayErrors(errors);
-    setRefreshAvailabilities(true);
+    refetchAvailabilitiesByUser();
   };
 
   // Function to identify breaks based on timeunits
@@ -496,13 +457,13 @@ const CalendarPage = () => {
               }}
               allPossibleTimeUnits={timeunits}
               onValidate={onValidate}
-              selectable={!loadingCalEvents}
+              selectable={!loadingCalEvents && !isLoading && !isPendingAvailability}
             />
           </div>
 
-          <ShiftModal modalOpen={shiftModalOpen} setModalOpen={setShiftModalOpen} selectedEvent={selectedEvent as ShiftEvent} />
-          <ExamModal modalOpen={examModalOpen} setModalOpen={setExamModalOpen} selectedEvent={selectedEvent as ExamEvent} />
-          <AvailabilityModal modalOpen={availabilityModalOpen} setModalOpen={setAvailabilityModalOpen} selectedEvent={selectedEvent as AvailabilityEvent} reload={() => setRefreshAvailabilities((prev) => !prev)} />
+          {shiftModalOpen && <ShiftModal modalOpen={shiftModalOpen} setModalOpen={setShiftModalOpen} selectedEvent={selectedEvent as ShiftEvent} />}
+          {examModalOpen && <ExamModal modalOpen={examModalOpen} setModalOpen={setExamModalOpen} selectedEvent={selectedEvent as ExamEvent} />}
+          {availabilityModalOpen && <AvailabilityModal modalOpen={availabilityModalOpen} setModalOpen={setAvailabilityModalOpen} selectedEvent={selectedEvent as AvailabilityEvent} reload={() => refetchAvailabilitiesByUser()} />}
         </RoleGate>
       </div>
     </div>
