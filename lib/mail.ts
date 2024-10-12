@@ -1,3 +1,4 @@
+import { Shift } from '@prisma/client';
 import nodemailer from 'nodemailer';
 import Mail from 'nodemailer/lib/mailer';
 
@@ -13,6 +14,9 @@ const transporter = nodemailer.createTransport({
 const name = 'FRT';
 const websiteDomain = process.env.NEXTAUTH_URL;
 
+/**
+ * @description Send a 2FA token email
+ */
 export const sendTwoFactorTokenEmail = async (
   email: Mail.Address | string,
   token: string
@@ -90,6 +94,10 @@ export const sendTwoFactorTokenEmail = async (
     html,
   });
 };
+
+/**
+ * @description Send a password reset email
+ */
 export const sendPasswordResetEmail = async (
   email: Mail.Address | string,
   token: string,
@@ -126,6 +134,10 @@ export const sendPasswordResetEmail = async (
     html,
   });
 }
+
+/**
+ * @description Send an email when a user registers for the first time or changes their email to verify their email
+ */
 export const sendVerificationEmail = async (
   email: Mail.Address | string,
   token: string
@@ -206,7 +218,9 @@ export const sendVerificationEmail = async (
   });
 };
 
-// Security information emails
+/**
+ * @description Send an email when a users password was changed
+ */
 export const sendPwdChangedEmail = async (email: Mail.Address | string) => {
   // This email is sent when a user has changed their password
   const resetPwdLink = `${websiteDomain}/auth/reset`;
@@ -235,5 +249,138 @@ export const sendPwdChangedEmail = async (email: Mail.Address | string) => {
     to: [email],
     subject: 'Security Information - Password Changed',
     html,
+  });
+};
+
+interface ShiftProps {
+  users: Promise<{ name: string; position: string; id: string }>[];
+  teamName: string;
+  startDate: Date;
+  endDate: Date;
+}
+
+const formatPositionName = (position: string): string => {
+  let formattedPosition = position;
+
+  // The position is camelCase
+  // we get this: "chefAgres" -> "Chef Agres"
+  formattedPosition = formattedPosition
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (str) => str.toUpperCase());
+
+
+  // If ends in bin, add a "." to the end
+  if (formattedPosition.toLocaleLowerCase().endsWith("bin")) formattedPosition += ".";
+
+  return formattedPosition;
+}
+
+// Function to create .ics file content
+const createIcsFile = (shift: ShiftProps, currentUserPosition: string) => {
+  const { endDate, startDate, teamName } = shift;
+
+  const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+SUMMARY:${teamName} - Shift
+DTSTART:${formatDateForIcs(startDate)}
+DTEND:${formatDateForIcs(endDate)}
+DESCRIPTION:You have been assigned to a shift as a ${currentUserPosition}
+END:VEVENT
+END:VCALENDAR`;
+  return icsContent;
+};
+
+// Format date to ICS format (YYYYMMDDTHHMMSSZ)
+const formatDateForIcs = (date: Date) => {
+  const d = new Date(date);
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}T${String(d.getUTCHours()).padStart(2, '0')}${String(d.getUTCMinutes()).padStart(2, '0')}${String(d.getUTCSeconds()).padStart(2, '0')}Z`;
+};
+
+/**
+ * @description Send an email when a user has been added to a shift
+ */
+export const sendShiftAddedEmail = async (
+  currentUser: { name: string; email: Mail.Address | string; id: string },
+  shift: ShiftProps
+) => {
+  const websiteLink = `${websiteDomain}/calendar`; // The users can see all their shifts here
+
+  const { endDate, startDate, users, teamName } = shift;
+  const { name, email, id } = currentUser;
+
+  const usersAwaited = await Promise.all(users);
+
+  // Find the current user's position in the users array
+  const currentUserInfo = usersAwaited.find(user => user.id === id);
+  const userPosition = currentUserInfo ? currentUserInfo.position : "Unknown Position";
+
+  // Filter out the current user from the assigned users list
+  const assignedUsers = usersAwaited.filter(user => user.id !== id);
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+      <h2 style="color: #007BFF;">Shift Added Notification</h2>
+      <p>Dear ${name},</p>
+      <p>You have been successfully added to a new shift as <strong>${formatPositionName(userPosition)}</strong>.</p>
+      <h3>Shift Details:</h3>
+      <ul>
+        <li><strong>Team Name:</strong> ${teamName}</li>
+        <li><strong>Start Date:</strong> ${new Date(startDate).toLocaleString()}</li>
+        <li><strong>End Date:</strong> ${new Date(endDate).toLocaleString()}</li>
+      </ul>
+      <h3>Assigned Users:</h3>
+      
+      ${assignedUsers.length > 0 ?
+      `<table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #007BFF; color: white;">
+            <th style="padding: 8px; text-align: left;">Name</th>
+            <th style="padding: 8px; text-align: left;">Position</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${assignedUsers.map(({ name, position }) => `
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;">${name}</td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${formatPositionName(position)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`
+      : `<p>No users have been assigned to this shift.</p>`
+    }
+      <p>You can view all your shifts by clicking the link below:</p>
+      <p><a href="${websiteLink}" style="color: #007BFF;">View Shifts</a></p>
+      <p>Best regards,</p>
+      <p>Your Company Name</p>
+    </div>
+  `;
+
+  const userAddress = process.env.USER;
+  if (!userAddress) throw new Error('USER environment variable is not set');
+
+  // Create .ics file content
+  const icsContent = createIcsFile(shift, formatPositionName(userPosition));
+  const icsFileName = 'shift_notification.ics';
+
+  // Convert the ICS content to a Buffer
+  const icsBuffer = Buffer.from(icsContent, 'utf-8');
+
+  await transporter.sendMail({
+    from: {
+      name, // Replace with your company name or dynamic value
+      address: userAddress,
+    },
+    to: [email],
+    subject: 'Shift Added',
+    html,
+    attachments: [
+      {
+        filename: icsFileName,
+        content: icsBuffer,
+        contentType: 'text/calendar',
+      },
+    ],
   });
 };

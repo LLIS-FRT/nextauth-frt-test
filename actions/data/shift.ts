@@ -2,6 +2,7 @@
 
 import { currentUser, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sendShiftAddedEmail } from "@/lib/mail";
 import { Shift, UserRole } from "@prisma/client";
 
 export type LimitedShift = Pick<Shift, "startDate" | "endDate" | "id">
@@ -95,7 +96,7 @@ export const createShift = protectedServerAction(
         if (new Set(userIds).size !== userIds.length) throw new Error("Duplicate user IDs");
 
         // Ensure the team exists
-        const team = await db.team.findUnique({ where: { id: teamId }, select: { maxUsers: true, possiblePositions: true } });
+        const team = await db.team.findUnique({ where: { id: teamId }, select: { maxUsers: true, possiblePositions: true, name: true } });
         if (!team) throw new Error("Team not found");
 
         // Ensure the team max is not less than the number of users
@@ -115,7 +116,7 @@ export const createShift = protectedServerAction(
             if (!possiblePositions.includes(position)) throw new Error("Invalid user position");
         }
 
-        return await db.shift.create({
+        const newShift = await db.shift.create({
             data: {
                 startDate,
                 endDate,
@@ -126,6 +127,33 @@ export const createShift = protectedServerAction(
                 createdByuserId,
             }
         });
+
+        const usersAndPosition: Promise<{ name: string; id: string; position: string }>[] = userIds.map(async (userId: string, index: number) => {
+            const user = await db.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true } });
+
+            if (!user) throw new Error("User not found");
+
+            return {
+                name: `${user.lastName} ${user.firstName?.charAt(0)}.`,
+                id: userId,
+                position: positionsArray[index],
+            }
+        });
+
+        if (currentUser_.email == "sebastianmostert663@gmail.com") {
+            await sendShiftAddedEmail({
+                email: currentUser_.email,
+                id: currentUser_.id,
+                name: `${currentUser_.lastName} ${currentUser_.firstName?.charAt(0)}.`,
+            }, {
+                endDate,
+                startDate,
+                teamName: team.name,
+                users: usersAndPosition
+            });
+        }
+
+        return newShift;
     }, {
     allowedRoles: [UserRole.ADMIN],
     requireAll: false

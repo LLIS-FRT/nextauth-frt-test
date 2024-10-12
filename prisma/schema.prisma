@@ -148,8 +148,8 @@ model User {
 
   createdShifts Shift[] @relation("CreatedShifts") // User confirming availabilities as the `confirmedBy`
 
-  Shifts  Shift[]  @relation("AssignedShifts", fields: [userIds], references: [id]) // User confirming availabilities as the `confirmedBy`
-  userIds String[] @db.ObjectId
+  Shifts  Shift[]  @relation("AssignedShifts", fields: [shiftIds], references: [id]) // User confirming availabilities as the `confirmedBy`
+  shiftIds String[] @db.ObjectId
 
   lastActiveAt DateTime @default(now())
 

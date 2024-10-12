@@ -68,7 +68,7 @@ const ShiftManagerPage = () => {
         selectable={false}
         showlegend={false}
       />
-      {overlapModalOpen && <OverlapModal modalOpen={overlapModalOpen} setModalOpen={setOverlapModalOpen} selectedEvent={selectedEvent} currentUser={user} />}
+      <OverlapModal modalOpen={overlapModalOpen} setModalOpen={setOverlapModalOpen} selectedEvent={selectedEvent} currentUser={user} />
     </div>
   );
 }
