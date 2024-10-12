@@ -5,12 +5,12 @@ import WeekHeader from './WeekHeader';
 import TimeColumn from './TimeColumn';
 import DayColumn from './DayColumn';
 import Legend from './Legend';
+import { timeunits as allPossibleTimeUnits } from '@/constants'
 
 
 //#region Calendar Component
 const Calendar: React.FC<CalendarProps> = ({
   onValidate,
-  allPossibleTimeUnits,
   events,
   handleEventClick,
   autoSubmit = false,

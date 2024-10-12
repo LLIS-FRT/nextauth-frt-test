@@ -1,9 +1,13 @@
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { currentUser } from "@/lib/auth";
+import { Metadata } from "next";
 
-export default async function Home() {
-  const user = await currentUser();
+export const metadata: Metadata = {
+  title: "First Responder Team - LLIS",
+  description: "The First Responder Team at LLIS is dedicated to ensuring the safety and well-being of the school community through immediate response and thorough preparedness.",
 
+};
+
+export default function Home() {
   return (
     <div className="h-full w-full flex flex-col items-center justify-center">
       <Card className="w-full max-w-lg p-6 bg-white shadow-lg rounded-lg">

@@ -13,8 +13,8 @@ import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Next Auth App",
-  description: "App using NextAuth",
+  title: "First Responder Team - LLIS",
+  description: "The First Responder Team at LLIS",
 };
 
 export default async function RootLayout({
@@ -38,7 +38,6 @@ export default async function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SessionProvider>
-          {/* Pass dbSession to LastActiveManagerProvider */}
           <LastActiveManagerProvider dbSession={dbSession}>
             <Toaster />
             <ExpiryCountdownPopUp />

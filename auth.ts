@@ -273,6 +273,5 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     jwt: {
         maxAge: ACTIVE_EXPIRATION_MS / 1000, // Set maxAge to the active expiration time
     },
-    ...authConfig,
-    debug: true
+    ...authConfig
 })

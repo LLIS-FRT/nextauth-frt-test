@@ -42,7 +42,6 @@ export interface OverlapEvent extends BaseEvent {
 export type EventType = ShiftEvent | ExamEvent | AvailabilityEvent | OverlapEvent;
 
 export interface CalendarProps {
-    allPossibleTimeUnits: TimeUnit[];
     onValidate: (slots: { startDate: Date; endDate: Date; }[]) => void;
     events?: EventType[];
     autoSubmit?: boolean;

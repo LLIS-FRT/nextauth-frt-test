@@ -4,7 +4,7 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useState, useTransition } from "react";
-import { useSession } from "next-auth/react";
+import { getSession, useSession } from "next-auth/react";
 
 import { SettingsSchema } from "@/schemas";
 import {
@@ -32,8 +32,8 @@ import { UserRole } from "@prisma/client";
 import { Switch } from "@/components/ui/switch";
 import { RoleGate } from "@/components/auth/roleGate";
 import PasswordField from "@/components/auth/PasswordField";
+import { GetServerSideProps } from "next";
 import { ExtendedUser } from "@/next-auth";
-import { currentUser } from "@/lib/auth";
 
 const formatRole = (role: UserRole) => {
     // Convert the role to a string
@@ -60,14 +60,29 @@ const formatRole = (role: UserRole) => {
     return formattedRole;
 }
 
+const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+
+    return debouncedValue;
+};
+
 const SettingsPage = () => {
+    const user = useCurrentUser();
 
     const [error, setError] = useState<string | undefined>();
     const [success, setSuccess] = useState<string | undefined>();
     const { update } = useSession();
     const [isPending, startTransition] = useTransition()
-    
-    const user = useCurrentUser();
 
     const form = useForm<z.infer<typeof SettingsSchema>>({
         resolver: zodResolver(SettingsSchema),
@@ -107,14 +122,19 @@ const SettingsPage = () => {
 
     useEffect(() => {
         if (user) {
-            form.reset({
+            const newValues = {
                 firstName: user.firstName,
                 lastName: user.lastName,
                 IAM: user.IAM,
                 email: user.email,
                 isTwoFactorEnabled: user.isTwoFactorEnabled,
-                roles: user.roles
-            })
+                roles: user.roles,
+            };
+
+            // Check if current form values differ from user values
+            if (JSON.stringify(form.getValues()) !== JSON.stringify(newValues)) {
+                form.reset(newValues);
+            }
         }
     }, [form, user]);
 
@@ -291,10 +311,10 @@ const SettingsPage = () => {
                         <FormError message={error} />
                         <FormSuccess message={success} />
                         <Button
-                            disabled={isPending}
+                            disabled={isPending || form.formState.isSubmitting}
                             type="submit"
                         >
-                            Save
+                            {isPending ? "Loading..." : "Save"}
                         </Button>
                     </form>
                 </Form>

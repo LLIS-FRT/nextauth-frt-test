@@ -22,6 +22,10 @@ const routes = [
     }
 ];
 
+export const metadata = {
+    title: "FRT - Admin Portal",
+};
+
 const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
     const navHeight = 72;
 

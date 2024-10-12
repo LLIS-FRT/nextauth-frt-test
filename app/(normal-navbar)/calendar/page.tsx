@@ -16,29 +16,12 @@ import { getExams } from '@/actions/data/exams';
 import { getShifts } from '@/actions/data/shift';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createAvailability, getAvailabilitiesByUser } from '@/actions/data/availability';
+import { timeunits } from '@/constants';
 
 interface EventValidationError {
   startDate: Date;
   endDate: Date;
 }
-
-const timeunits = [
-  { name: '1', startTime: 800, endTime: 850 },
-  { name: '2', startTime: 850, endTime: 940 },
-  { name: '3', startTime: 955, endTime: 1045 },
-  { name: '4', startTime: 1045, endTime: 1135 },
-  { name: '5', startTime: 1135, endTime: 1225 },
-  { name: '6', startTime: 1225, endTime: 1315 },
-  { name: '7', startTime: 1315, endTime: 1405 },
-  { name: '8', startTime: 1420, endTime: 1510 },
-  { name: '9', startTime: 1510, endTime: 1600 },
-  { name: '10', startTime: 1600, endTime: 1650 },
-  { name: '11', startTime: 1650, endTime: 1740 },
-  { name: '12', startTime: 1740, endTime: 1830 },
-  { name: '13', startTime: 1830, endTime: 1920 },
-  { name: '14', startTime: 1920, endTime: 2010 },
-  { name: '15', startTime: 2010, endTime: 2100 },
-];
 
 const CalendarPage = () => {
   const [exams, setExams] = useState<EventType[]>([]);
@@ -53,10 +36,7 @@ const CalendarPage = () => {
   const [examModalOpen, setExamModalOpen] = useState(false);
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
-
-  const [refreshExams, setRefreshExams] = useState(false);
-  const [refreshShifts, setRefreshShifts] = useState(false);
-
+  
   const queryClient = useQueryClient();
 
   const user = useCurrentUser();
@@ -65,6 +45,7 @@ const CalendarPage = () => {
 
   const { refetch: refetchAvailabilitiesByUser, isLoading } = useQuery({
     queryKey: ["availabilities", id, isIAM],
+    enabled: !!id,
     queryFn: async () => {
       if (!id) return;
       const availabilities = await getAvailabilitiesByUser(id, isIAM);
@@ -85,11 +66,12 @@ const CalendarPage = () => {
       setAvailabilities(availabilityEvents);
 
       return availabilities;
-    },
+    }
   })
 
   const { refetch: refetchShifts, isLoading: isLoadingShifts } = useQuery({
     queryKey: ["shifts"],
+    enabled: !!id,
     queryFn: async () => {
       if (!id) return;
       const { shifts } = await getShifts(undefined);
@@ -116,6 +98,56 @@ const CalendarPage = () => {
     },
   })
 
+  const { refetch: refetchExams, isLoading: isLoadingExams } = useQuery({
+    queryKey: ["exams"],
+    enabled: !!id,
+    queryFn: async () => {
+      if (!id) return;
+      const { exams } = await getExams({ id, IAM: isIAM });
+
+      const examEvents: EventType[] = exams.map((exam) => {
+        const { startTime, endTime, examDate } = exam;
+
+        // Helper function to convert time in 24-hour format (e.g., 800, 850, 1300) to hours and minutes
+        const parseTime = (time: number): { hours: number; minutes: number } => {
+          const timeStr = time.toString().padStart(4, '0'); // Ensure it's 4 digits
+          const hours = parseInt(timeStr.substring(0, 2), 10);
+          const minutes = parseInt(timeStr.substring(2), 10);
+          return { hours, minutes };
+        };
+
+        // Extract the date components (YYYY, MM, DD) from the examDate (YYYYMMDD format)
+        const year = Math.floor(examDate / 10000);
+        const month = Math.floor((examDate % 10000) / 100) - 1; // Month is zero-indexed in JavaScript Date
+        const day = examDate % 100;
+
+        // Parse start and end times
+        const { hours: startHours, minutes: startMinutes } = parseTime(startTime);
+        const { hours: endHours, minutes: endMinutes } = parseTime(endTime);
+
+        // Create start and end Date objects
+        const startDate = new Date(year, month, day, startHours, startMinutes);
+        const endDate = new Date(year, month, day, endHours, endMinutes);
+
+        return {
+          backgroundColor: EventBgColor.Exam,
+          endDate,
+          startDate,
+          id: `exam-${uuidv4()}`,
+          title: `Exam: ${exam.name}`,
+          type: "exam",
+          extendedProps: {
+            exam,
+          }
+        }
+      })
+
+      setExams(examEvents);
+
+      return exams;
+    }
+  })
+
   const { mutateAsync: server_createAvailability, isPending: isPendingAvailability } = useMutation({
     mutationFn: createAvailability,
     onError: () => {
@@ -125,112 +157,6 @@ const CalendarPage = () => {
       queryClient.invalidateQueries({ queryKey: ["availabilities"] });
     },
   });
-
-  // Fetch exam data and availability data on component mount
-  useEffect(() => {
-    if (!id) return;
-
-    const fetchExams = async () => {
-      const res = await getExams({
-        id,
-        IAM: isIAM,
-      });
-
-      const { exams } = res;
-
-      const examEvents: EventType[] = exams.map((exam) => {
-        const { startTime, endTime, examDate } = exam;
-
-        // Helper function to convert time in 24-hour format (e.g., 800, 850, 1300) to hours and minutes
-        const parseTime = (time: number): { hours: number; minutes: number } => {
-          const timeStr = time.toString().padStart(4, '0'); // Ensure it's 4 digits
-          const hours = parseInt(timeStr.substring(0, 2), 10);
-          const minutes = parseInt(timeStr.substring(2), 10);
-          return { hours, minutes };
-        };
-
-        // Extract the date components (YYYY, MM, DD) from the examDate (YYYYMMDD format)
-        const year = Math.floor(examDate / 10000);
-        const month = Math.floor((examDate % 10000) / 100) - 1; // Month is zero-indexed in JavaScript Date
-        const day = examDate % 100;
-
-        // Parse start and end times
-        const { hours: startHours, minutes: startMinutes } = parseTime(startTime);
-        const { hours: endHours, minutes: endMinutes } = parseTime(endTime);
-
-        // Create start and end Date objects
-        const startDate = new Date(year, month, day, startHours, startMinutes);
-        const endDate = new Date(year, month, day, endHours, endMinutes);
-
-        return {
-          backgroundColor: EventBgColor.Exam,
-          endDate,
-          startDate,
-          id: `exam-${uuidv4()}`,
-          title: `Exam: ${exam.name}`,
-          type: "exam",
-        }
-      })
-
-      setExams(examEvents);
-    }
-
-    fetchExams();
-  }, [id, isIAM]);
-
-  // Get exams on refresh
-  useEffect(() => {
-    if (!refreshExams) return;
-    const fetchExams = async () => {
-      if (!id) return;
-
-      const res = await getExams({
-        id: id,
-        IAM: isIAM,
-      });
-
-      const { exams } = res;
-
-      const examEvents: EventType[] = exams.map((exam) => {
-        const { startTime, endTime, examDate } = exam;
-
-        // Helper function to convert time in 24-hour format (e.g., 800, 850, 1300) to hours and minutes
-        const parseTime = (time: number): { hours: number; minutes: number } => {
-          const timeStr = time.toString().padStart(4, '0'); // Ensure it's 4 digits
-          const hours = parseInt(timeStr.substring(0, 2), 10);
-          const minutes = parseInt(timeStr.substring(2), 10);
-          return { hours, minutes };
-        };
-
-        // Extract the date components (YYYY, MM, DD) from the examDate (YYYYMMDD format)
-        const year = Math.floor(examDate / 10000);
-        const month = Math.floor((examDate % 10000) / 100) - 1; // Month is zero-indexed in JavaScript Date
-        const day = examDate % 100;
-
-        // Parse start and end times
-        const { hours: startHours, minutes: startMinutes } = parseTime(startTime);
-        const { hours: endHours, minutes: endMinutes } = parseTime(endTime);
-
-        // Create start and end Date objects
-        const startDate = new Date(year, month, day, startHours, startMinutes);
-        const endDate = new Date(year, month, day, endHours, endMinutes);
-
-        return {
-          backgroundColor: EventBgColor.Exam,
-          endDate,
-          startDate,
-          id: `exam-${uuidv4()}`,
-          title: `Exam: ${exam.name}`,
-          type: "exam",
-        }
-      })
-
-      setExams(examEvents);
-    }
-
-    fetchExams();
-    setRefreshExams(false);
-  }, [id, isIAM, refreshExams]);
 
   // Set calendar events whenever availabilities or exams change
   useEffect(() => {
@@ -454,14 +380,13 @@ const CalendarPage = () => {
                     break;
                 }
               }}
-              allPossibleTimeUnits={timeunits}
               onValidate={onValidate}
               selectable={!loadingCalEvents && !isLoading && !isPendingAvailability}
             />
           </div>
 
           {shiftModalOpen && <ShiftModal modalOpen={shiftModalOpen} setModalOpen={setShiftModalOpen} selectedEvent={selectedEvent as ShiftEvent} />}
-          {examModalOpen && <ExamModal modalOpen={examModalOpen} setModalOpen={setExamModalOpen} selectedEvent={selectedEvent as ExamEvent} />}
+          {examModalOpen && <ExamModal modalOpen={examModalOpen} setModalOpen={setExamModalOpen} selectedEvent={selectedEvent as ExamEvent} refetch={() => refetchExams()} />}
           {availabilityModalOpen && <AvailabilityModal modalOpen={availabilityModalOpen} setModalOpen={setAvailabilityModalOpen} selectedEvent={selectedEvent as AvailabilityEvent} reload={() => refetchAvailabilitiesByUser()} />}
         </RoleGate>
       </div>
