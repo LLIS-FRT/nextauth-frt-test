@@ -128,13 +128,12 @@ const CalendarPage = () => {
 
   // Fetch exam data and availability data on component mount
   useEffect(() => {
-    const id = user?.id || user?.IAM;
     if (!id) return;
 
     const fetchExams = async () => {
       const res = await getExams({
-        id: id,
-        IAM: user?.id ? false : true,
+        id,
+        IAM: isIAM,
       });
 
       const { exams } = res;
@@ -177,17 +176,17 @@ const CalendarPage = () => {
     }
 
     fetchExams();
-  }, [user?.IAM, user?.id]);
+  }, [id, isIAM]);
 
   // Get exams on refresh
   useEffect(() => {
     if (!refreshExams) return;
     const fetchExams = async () => {
-      const id = user?.id || user?.IAM;
       if (!id) return;
+
       const res = await getExams({
         id: id,
-        IAM: user?.id ? false : true,
+        IAM: isIAM,
       });
 
       const { exams } = res;
@@ -231,7 +230,7 @@ const CalendarPage = () => {
 
     fetchExams();
     setRefreshExams(false);
-  }, [user?.IAM, user?.id, refreshExams]);
+  }, [id, isIAM, refreshExams]);
 
   // Set calendar events whenever availabilities or exams change
   useEffect(() => {

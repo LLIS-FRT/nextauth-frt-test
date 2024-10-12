@@ -52,8 +52,7 @@ const ShiftManagerPage = () => {
   useEffect(() => {
     // Determine overlaps after availabilities are loaded
     const overlaps = getOverlapAvailabilities(availabilities);
-
-    console.log(overlaps);
+    
     // Remove duplicate events
     const uniqueEvents = new Map();
     overlaps.forEach((event) => {

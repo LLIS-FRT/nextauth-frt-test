@@ -108,7 +108,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
         async session({ session, token }) {
             session.user = token.user;
-
+            
             return session;
         },
         // async jwt({ token, user }) {
@@ -210,7 +210,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             } else if (token.user && token.sub) {
                 // For subsequent requests, ensure token.user exists and is assigned properly
                 const existingUser = await getUserById(token.sub); // `sub` contains the user ID
-                if (!existingUser) return null;
+                if (!existingUser) {
+                    console.info('User not found\nLogging out user');
+                    return null;
+                }
 
                 const lastActiveAt = new Date();
                 const existingAccount = await getAccountByUserId(existingUser.id);
@@ -248,6 +251,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     }).catch((err) => {
                         // The session has already been deleted
                     })
+                    console.info('Session expired\nLogging out user');
                     return null;
                 }
 
@@ -263,10 +267,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     },
     session: {
         strategy: "jwt",
-        maxAge: ACTIVE_EXPIRATION_MS / 1000 // Set maxAge to the active expiration time
+        maxAge: ACTIVE_EXPIRATION_MS / 1000, // Set maxAge to the active expiration time
+        updateAge: 0, // Set updateAge to the active expiration time
     },
     jwt: {
         maxAge: ACTIVE_EXPIRATION_MS / 1000, // Set maxAge to the active expiration time
     },
     ...authConfig,
+    debug: true
 })

@@ -3,7 +3,7 @@
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useSession } from "next-auth/react";
 
 import { SettingsSchema } from "@/schemas";
@@ -32,6 +32,8 @@ import { UserRole } from "@prisma/client";
 import { Switch } from "@/components/ui/switch";
 import { RoleGate } from "@/components/auth/roleGate";
 import PasswordField from "@/components/auth/PasswordField";
+import { ExtendedUser } from "@/next-auth";
+import { currentUser } from "@/lib/auth";
 
 const formatRole = (role: UserRole) => {
     // Convert the role to a string
@@ -59,12 +61,13 @@ const formatRole = (role: UserRole) => {
 }
 
 const SettingsPage = () => {
-    const user = useCurrentUser();
 
     const [error, setError] = useState<string | undefined>();
     const [success, setSuccess] = useState<string | undefined>();
     const { update } = useSession();
     const [isPending, startTransition] = useTransition()
+    
+    const user = useCurrentUser();
 
     const form = useForm<z.infer<typeof SettingsSchema>>({
         resolver: zodResolver(SettingsSchema),
@@ -101,6 +104,20 @@ const SettingsPage = () => {
                 .catch(() => setError("Something went wrong. Please try again."))
         })
     }
+
+    useEffect(() => {
+        if (user) {
+            form.reset({
+                firstName: user.firstName,
+                lastName: user.lastName,
+                IAM: user.IAM,
+                email: user.email,
+                isTwoFactorEnabled: user.isTwoFactorEnabled,
+                roles: user.roles
+            })
+        }
+    }, [form, user]);
+
     // TODO: Mobile responsive
     return (
         <Card className="w-full sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px]">

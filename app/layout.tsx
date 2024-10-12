@@ -26,35 +26,28 @@ export default async function RootLayout({
   const user = await currentUser();
   const dbSession = await currentDbSession();
 
-  if (user && !user?.onboardingComplete) {
-    return (
-      <SessionProvider>
-        <LastActiveManagerProvider dbSession={dbSession}>
-          <html lang="en">
-            <body className={inter.className}>
-              <Toaster />
-              <Onboarding />
-            </body>
-          </html>
-        </LastActiveManagerProvider>
-      </SessionProvider>
-    );
-  }
+  const ChildrenOrOnboarding = () => {
+    if (user && !user?.onboardingComplete) {
+      return <Onboarding />;
+    } else {
+      return children;
+    }
+  };
 
   return (
-    <SessionProvider session={session}>
-      <html lang="en">
-        <body className={inter.className}>
+    <html lang="en">
+      <body className={inter.className}>
+        <SessionProvider>
           {/* Pass dbSession to LastActiveManagerProvider */}
           <LastActiveManagerProvider dbSession={dbSession}>
             <Toaster />
             <ExpiryCountdownPopUp />
             <ReactQueryProvider>
-              {children}
+              <ChildrenOrOnboarding />
             </ReactQueryProvider>
           </LastActiveManagerProvider>
-        </body>
-      </html>
-    </SessionProvider>
+        </SessionProvider>
+      </body>
+    </html>
   );
 }

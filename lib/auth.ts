@@ -3,7 +3,6 @@ import { INACTIVE_EXPIRATION_MS } from "@/constants";
 import { Session, User, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "./db";
-import { ExtendedUser } from "@/next-auth";
 
 export const currentUser = async () => {
     const session = await auth();

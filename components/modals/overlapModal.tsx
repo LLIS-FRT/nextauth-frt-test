@@ -225,7 +225,8 @@ export const CreateShiftModal = ({ modalOpen, setModalOpen, users, startDate, en
     useEffect(() => {
         if (teamId) {
             const teamPositions = teams.find((team) => team.id === teamId)?.possiblePositions || [];
-            setPositions(teamPositions);
+            const filteredPositions = teamPositions.filter((position): position is string => typeof position === "string");
+            setPositions(filteredPositions);
         }
     }, [teamId, teams]);
 
