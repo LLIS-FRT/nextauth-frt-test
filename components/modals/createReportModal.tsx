@@ -6,7 +6,6 @@ import { Dialog, DialogOverlay, DialogContent, DialogTitle, DialogDescription, D
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { useEffect, useState } from 'react';
-import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { createReport } from '@/actions/data/report';
 

@@ -51,7 +51,7 @@ const ReportForm = ({ report, missionNumber }: { report: Report | undefined, mis
         if (!missionNumber) return setIsValidMissionNumber(false);
         if (missionNumber.length != 10) return setIsValidMissionNumber(false);
         checkValidity();
-    }, [])
+    }, [missionNumber])
 
     if (!isValidMissionNumber) {
         return (

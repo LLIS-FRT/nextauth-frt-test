@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Report } from '@/actions/data/report';
+import { Report } from '@/actions/data/types';
 
 const formatMissionNumber = (missionNumber: string) => {
     const datePart = missionNumber.slice(0, 8); // yyyymmdd

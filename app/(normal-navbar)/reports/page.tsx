@@ -1,8 +1,8 @@
 "use client";
 
-import { getReports, Report } from '@/actions/data/report';
+import { getReports } from '@/actions/data/report';
+import { Report } from '@/actions/data/types';
 import { RoleGate } from '@/components/auth/roleGate';
-import { CreateReportModal } from '@/components/modals/createReportModal';
 import ReportCards from '@/components/reports/reportCards';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

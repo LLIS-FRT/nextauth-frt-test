@@ -1,4 +1,4 @@
-import { FirstResponders } from '@/actions/data/report';
+import { FirstResponders } from '@/actions/data/types';
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { getTeams, LimitedTeam } from '@/actions/data/team';
@@ -37,12 +37,7 @@ const FirstRespondersForm = ({
         },
     });
 
-    const handleUpdate = () => {
-        setFirstResponders({
-            teamId: teamId ?? '',
-            firstResponders: firstResponders ?? []
-        });
-    };
+
 
     // Get positions of the selected team
     useEffect(() => {
@@ -57,6 +52,13 @@ const FirstRespondersForm = ({
 
     // Update the parent state when first responders change
     useEffect(() => {
+        const handleUpdate = () => {
+            setFirstResponders({
+                teamId: teamId ?? '',
+                firstResponders: firstResponders ?? []
+            });
+        };
+        
         handleUpdate()
     }, [setFirstRespondersState, setFirstResponders, teamId, firstResponders]);
 
