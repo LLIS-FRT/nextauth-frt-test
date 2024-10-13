@@ -206,6 +206,7 @@ export const CreateShiftModal = ({ modalOpen, setModalOpen, users, startDate, en
 
     const { isLoading: loadingTeams, refetch: refetchTeams } = useQuery({
         queryKey: ["teams"],
+        staleTime: 1000 * 60 * 5,
         queryFn: async () => {
             const { teams } = await getTeams(undefined);
 
@@ -268,6 +269,15 @@ export const CreateShiftModal = ({ modalOpen, setModalOpen, users, startDate, en
             })),
         };
 
+        await server_createShift({
+            createdByuserId: data.createdByuserId,
+            endDate: data.endDate,
+            startDate: data.startDate,
+            teamId: data.teamId,
+            userIds: data.shiftUsers.map((user) => user.userId),
+            userPositions: data.shiftUsers.map((user) => user.position),
+        });
+
         // We now look at the different availabilities
         for (const availability of availabilities) {
             const { startDate: availabilityStartDate, endDate: availabilityEndDate, userId } = availability;
@@ -298,15 +308,6 @@ export const CreateShiftModal = ({ modalOpen, setModalOpen, users, startDate, en
                 await server_createAvailability(newAvailability);
             }
         }
-
-        await server_createShift({
-            createdByuserId: data.createdByuserId,
-            endDate: data.endDate,
-            startDate: data.startDate,
-            teamId: data.teamId,
-            userIds: data.shiftUsers.map((user) => user.userId),
-            userPositions: data.shiftUsers.map((user) => user.position),
-        });
     };
 
     const selectedPositions = Object.values(userPositions);

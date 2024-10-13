@@ -353,7 +353,7 @@ export const sendShiftAddedEmail = async (
       <p>You can view all your shifts by clicking the link below:</p>
       <p><a href="${websiteLink}" style="color: #007BFF;">View Shifts</a></p>
       <p>Best regards,</p>
-      <p>Your Company Name</p>
+      <p>The FRT Team</p>
     </div>
   `;
 

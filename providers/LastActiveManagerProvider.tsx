@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session } from '@prisma/client';
 
-const DEBOUNCE_DELAY = 1000 * 60 * 5;
+const DEBOUNCE_DELAY = 1000 * 60;
 
 interface LastActiveContextType {
     updateLastActive: () => void;

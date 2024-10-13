@@ -140,18 +140,16 @@ export const createShift = protectedServerAction(
             }
         });
 
-        if (currentUser_.email == "sebastianmostert663@gmail.com") {
-            await sendShiftAddedEmail({
-                email: currentUser_.email,
-                id: currentUser_.id,
-                name: `${currentUser_.lastName} ${currentUser_.firstName?.charAt(0)}.`,
-            }, {
-                endDate,
-                startDate,
-                teamName: team.name,
-                users: usersAndPosition
-            });
-        }
+        await sendShiftAddedEmail({
+            email: currentUser_.email,
+            id: currentUser_.id,
+            name: `${currentUser_.lastName} ${currentUser_.firstName?.charAt(0)}.`,
+        }, {
+            endDate,
+            startDate,
+            teamName: team.name,
+            users: usersAndPosition
+        });
 
         return newShift;
     }, {

@@ -45,6 +45,7 @@ const CalendarPage = () => {
 
   const { refetch: refetchAvailabilitiesByUser, isLoading } = useQuery({
     queryKey: ["availabilities", id, isIAM],
+    staleTime: 1000 * 60 * 5,
     enabled: !!id,
     queryFn: async () => {
       if (!id) return;
@@ -71,6 +72,7 @@ const CalendarPage = () => {
 
   const { refetch: refetchShifts, isLoading: isLoadingShifts } = useQuery({
     queryKey: ["shifts"],
+    staleTime: 1000 * 60 * 5,
     enabled: !!id,
     queryFn: async () => {
       if (!id) return;
@@ -100,6 +102,7 @@ const CalendarPage = () => {
 
   const { refetch: refetchExams, isLoading: isLoadingExams } = useQuery({
     queryKey: ["exams"],
+    staleTime: 1000 * 60 * 5,
     enabled: !!id,
     queryFn: async () => {
       if (!id) return;

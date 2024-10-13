@@ -22,6 +22,7 @@ const ShiftManagerPage = () => {
 
   const { isLoading: loadingAvailabilities, refetch: refetchAvailabilities } = useQuery({
     queryKey: ["availabilities"],
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const res = await getAvailabilities(undefined);
       const { availabilities } = res;
