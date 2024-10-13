@@ -4,7 +4,7 @@ import { currentUser, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Team, UserRole } from "@prisma/client";
 
-export type LimitedTeam = Pick<Team, "id" | "name" | "possiblePositions">
+export type LimitedTeam = Pick<Team, "id" | "name" | "possiblePositions" | "minUsers" | "maxUsers">
 
 export interface GetTeamsResponse {
     allTeams: boolean;
@@ -28,26 +28,27 @@ export const getTeams = protectedServerAction(
 
         if (!validUser) throw new Error("User not found");
 
-        const isAdmin = validUser.roles.includes(UserRole.ADMIN);
-        if (!isAdmin) throw new Error("Unauthorized");
+
 
         const select = {
             id: true,
             name: true,
             possiblePositions: true,
+            minUsers: true,
+            maxUsers: true,
         };
 
         if (!id) {
             const teams = await db.team.findMany({ select });
-            return { allTeams: isAdmin, teams };
+            return { allTeams: true, teams };
         } else if (id) {
             const team = await db.team.findUnique({ where: { id }, select });
             if (!team) throw new Error("Team not found");
-            return { allTeams: isAdmin, teams: [team] };
+            return { allTeams: false, teams: [team] };
         } else {
             throw new Error("Invalid id");
         }
     }, {
-    allowedRoles: [UserRole.ADMIN],
+    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
     requireAll: false,
 })

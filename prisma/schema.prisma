@@ -148,7 +148,7 @@ model User {
 
   createdShifts Shift[] @relation("CreatedShifts") // User confirming availabilities as the `confirmedBy`
 
-  Shifts  Shift[]  @relation("AssignedShifts", fields: [shiftIds], references: [id]) // User confirming availabilities as the `confirmedBy`
+  Shifts   Shift[]  @relation("AssignedShifts", fields: [shiftIds], references: [id]) // User confirming availabilities as the `confirmedBy`
   shiftIds String[] @db.ObjectId
 
   lastActiveAt DateTime @default(now())
@@ -242,7 +242,7 @@ model Report {
   id              String  @id @default(auto()) @map("_id") @db.ObjectId
   createdBy       User    @relation(fields: [createdById], references: [id])
   createdById     String  @db.ObjectId
-  missionNumber   Int
+  missionNumber   Int     @unique
   patientInfo     Json    @default("{}")
   firstResponders Json    @default("{}")
   missionInfo     Json    @default("{}")

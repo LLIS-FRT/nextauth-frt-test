@@ -27,17 +27,15 @@ export const metadata = {
 };
 
 const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
-    const navHeight = 72;
-
     return (
         <div className="h-screen w-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-400 to-blue-800">
             {/* Navbar */}
             <div className="navbar">
-                <Navbar routes={routes} height={navHeight} />
+                <Navbar routes={routes} height={72} />
             </div>
 
             {/* Main content */}
-            <div className={`flex flex-col items-center justify-center w-full h-[calc(100vh-${navHeight}px)]`}>
+            <div className={`flex flex-col items-center justify-center w-full h-[calc(100vh-72px)]`}>
                 {children}
             </div>
         </div>
