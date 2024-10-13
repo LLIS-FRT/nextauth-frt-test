@@ -51,7 +51,7 @@ export const PUT = protectedRoute(
         const roles = user.roles;
         if (!roles) return new NextResponse("Unauthorized", { status: 401 });
 
-        const body: ReportType = await req.json();
+        const body = await req.json();
 
         const report = await db.report.findUnique({ where: { id } });
         if (!report) return new NextResponse("No report found", { status: 404 });

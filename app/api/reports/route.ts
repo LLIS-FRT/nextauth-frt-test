@@ -1,7 +1,8 @@
 import { currentUser, protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
+
+import { Report as ReportType, UserRole } from "@prisma/client";
 
 // GET all Reports
 export const GET = protectedRoute(async function GET(req) {
