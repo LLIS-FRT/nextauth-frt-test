@@ -1,0 +1,9 @@
+{
+    "name": "FRT - App Name",
+    "short_name": "App Name",
+    "description": "A description of your app",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#000000"
+}
