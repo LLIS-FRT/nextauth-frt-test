@@ -45,6 +45,8 @@ const Calendar: React.FC<CalendarProps> = ({
   autoSubmit ? selectedSlots.length > 0 && (handleValidate()) : null
   const weekDays = getWeekDays(currentWeek, weekends);
 
+  const getTimeSlotsForDay = (day: Date) => allPossibleTimeUnits.map(slot => ({ slot, day }));
+
   return (
     <div className="p-4 select-none" ref={calendarRef}>
       <WeekHeader
@@ -59,6 +61,7 @@ const Calendar: React.FC<CalendarProps> = ({
           selectedSlots={selectedSlots}
           setSelectedSlots={setSelectedSlots}
           currentWeek={currentWeek}
+          selectable={selectable}
         />
         {weekDays.map((day, index) => {
           return (
@@ -68,7 +71,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 events={events}
                 calendarRef={calendarRef}
                 selectedSlots={selectedSlots}
-                allPossibleTimeUnits={allPossibleTimeUnits}
+                allPossibleTimeUnits={getTimeSlotsForDay(day)}
                 day={day}
                 setSelectedSlots={setSelectedSlots}
                 selectable={selectable}

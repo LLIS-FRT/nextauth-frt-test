@@ -10,7 +10,6 @@ import { LoginButton } from "@/components/auth/loginButton";
 import { Button } from "@/components/ui/button";
 import { FiMenu, FiX } from "react-icons/fi";
 import gsap from "gsap"; // Import GSAP
-import { Sign } from "crypto";
 import { LogoutButton } from "@/components/auth/logoutButton";
 import Link from "next/link";
 
@@ -22,7 +21,7 @@ type Routes = {
     isAuthenticated?: boolean;
 };
 
-export const Navbar = ({ height, routes }: { height: number, routes: Routes[] }) => {
+export const Navbar = ({ routes }: { routes: Routes[] }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const user = useCurrentUser();
     const menuRef = useRef<HTMLDivElement>(null);
@@ -77,12 +76,8 @@ export const Navbar = ({ height, routes }: { height: number, routes: Routes[] })
         }
     }, [isMenuOpen]);
 
-    if(height < 72) throw new Error("Height must be at least 72px");
-
-    const className = `bg-secondary flex justify-between items-center p-4 shadow-md relative min-h-[${height}px] max-h-[${height}px]`;
-
     return (
-        <nav className={className}>
+        <nav className="bg-secondary flex justify-between items-center p-4 shadow-md relative h-[72px]">
             <div className="flex items-center justify-between w-full">
                 {/* Move the menu button to the right */}
                 <button onClick={toggleMenu} className="md:hidden">

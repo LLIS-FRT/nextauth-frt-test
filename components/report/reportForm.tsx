@@ -8,6 +8,12 @@ import FirstRespondersForm from "./firstRespondersForm";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
 
+enum FormState {
+    Create,
+    Update,
+    View
+}
+
 const ReportForm = ({ report, missionNumber }: { report: Report | undefined, missionNumber: string }) => {
     const newDate = new Date();
 
@@ -19,12 +25,13 @@ const ReportForm = ({ report, missionNumber }: { report: Report | undefined, mis
     const [isValidMissionNumber, setIsValidMissionNumber] = useState<boolean>(false);
     const [generatedID, setGeneratedID] = useState<string>("");
 
-    let state: "create" | "update" | "view" = "view"
+    let state: FormState = FormState.View;
 
-    if (!report) state = "create";
+    if (!report) state = FormState.Create;
 
     if (report) {
         // TODO: Check if the user can actually update this report
+        state = FormState.Update;
     }
 
     const handleSubmit = async (event: React.FormEvent<HTMLButtonElement>) => {
@@ -45,7 +52,7 @@ const ReportForm = ({ report, missionNumber }: { report: Report | undefined, mis
         const checkValidity = async () => {
             const generatedID = await generateMissionNumber();
             setGeneratedID(generatedID.toString());
-            if(missionNumber === generatedID.toString()) return setIsValidMissionNumber(true);
+            if (missionNumber === generatedID.toString()) return setIsValidMissionNumber(true);
         }
 
         if (!missionNumber) return setIsValidMissionNumber(false);
@@ -64,13 +71,82 @@ const ReportForm = ({ report, missionNumber }: { report: Report | undefined, mis
         )
     }
 
+    const FormButtons = () => {
+        if (state === FormState.View) {
+            return (
+                <div className="flex flex-row gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            setMissionInfo(undefined);
+                            setPatientInfo(undefined);
+                            setAbcdeSchema(undefined);
+                            setSamplerSchema(undefined);
+                            setFirstResponders(undefined);
+                        }}
+                    >
+                        Reset
+                    </Button>
+                </div>
+            )
+        } else if (state === FormState.Create) {
+            return (
+                <div className="flex flex-row gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            setMissionInfo(undefined);
+                            setPatientInfo(undefined);
+                            setAbcdeSchema(undefined);
+                            setSamplerSchema(undefined);
+                            setFirstResponders(undefined);
+                        }}
+                    >
+                        Reset
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            setMissionInfo(undefined);
+                            setPatientInfo(undefined);
+                            setAbcdeSchema(undefined);
+                            setSamplerSchema(undefined);
+                            setFirstResponders(undefined);
+                        }}
+                    >
+                        Cancel
+                    </Button>
+                </div>
+            )
+        } else if (state === FormState.Update) {
+            return (
+                <div className="flex flex-row gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            setMissionInfo(undefined);
+                            setPatientInfo(undefined);
+                            setAbcdeSchema(undefined);
+                            setSamplerSchema(undefined);
+                            setFirstResponders(undefined);
+                        }}
+                    >
+                        Reset
+                    </Button>
+                </div>
+            )
+        } else {
+            return (
+                <div>Error</div>
+            )
+        }
+    }
+
     return (
         <div className="w-full h-full flex flex-col items-center">
             <MissionNumber missionNumber={missionNumber} />
-            <FirstRespondersForm firstRespondersData={firstResponders} setFirstResponders={setFirstResponders} disabled={state === "view"} />
-            <Button disabled={state === "view"} onClick={handleSubmit}>
-                Submit
-            </Button>
+            <FirstRespondersForm firstRespondersData={firstResponders} setFirstResponders={setFirstResponders} disabled={state === FormState.View} />
+            <FormButtons />
         </div>
     )
 }

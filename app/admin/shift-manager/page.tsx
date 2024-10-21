@@ -21,7 +21,7 @@ const ShiftManagerPage = () => {
   const user = useCurrentUser();
 
   const { isLoading: loadingAvailabilities, refetch: refetchAvailabilities } = useQuery({
-    queryKey: ["availabilities"],
+    queryKey: ["availabilities", "all"],
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const res = await getAvailabilities(undefined);
@@ -35,7 +35,7 @@ const ShiftManagerPage = () => {
   useEffect(() => {
     // Determine overlaps after availabilities are loaded
     const overlaps = getOverlapAvailabilities(availabilities);
-    
+
     // Remove duplicate events
     const uniqueEvents = new Map();
     overlaps.forEach((event) => {
@@ -52,24 +52,28 @@ const ShiftManagerPage = () => {
   if (loadingAvailabilities) return <div>Loading...</div>
 
   return (
-    <div className="h-full w-screen bg-white">
-      <Calendar
-        onValidate={(slots: { startDate: Date; endDate: Date; }[]) => {
-          // Handle validation logic
-        }}
-        handleEventClick={(event: EventType, type: EventType['type']) => {
-          switch (type) {
-            case "overlap":
-              setOverlapModalOpen(true);
-              setSelectedEvent(event as OverlapEvent);
-              break;
-          }
-        }}
-        events={calEvents}
-        selectable={false}
-        showlegend={false}
-      />
-      <OverlapModal modalOpen={overlapModalOpen} setModalOpen={setOverlapModalOpen} selectedEvent={selectedEvent} currentUser={user} />
+    <div className="bg-white w-full h-full ">
+      <div className="mt-2">
+        <div className="h-full w-full items-center bg-white justify-center no-scrollbar">
+          <Calendar
+            onValidate={(slots: { startDate: Date; endDate: Date; }[]) => {
+              // Handle validation logic
+            }}
+            handleEventClick={(event: EventType, type: EventType['type']) => {
+              switch (type) {
+                case "overlap":
+                  setOverlapModalOpen(true);
+                  setSelectedEvent(event as OverlapEvent);
+                  break;
+              }
+            }}
+            events={calEvents}
+            selectable={false}
+            showlegend={false}
+          />
+          <OverlapModal modalOpen={overlapModalOpen} setModalOpen={setOverlapModalOpen} selectedEvent={selectedEvent} currentUser={user} />
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,5 @@
-import { CSSProperties, useEffect } from "react";
-import { EventBgColor, EventBgTexture } from "./types";
-
-// TODO: Fix texturing
+import { CSSProperties } from "react";
+import { AvailabilityEvent, EventBgColor, EventBgTexture, EventType, ExamEvent, OverlapEvent, ShiftEvent, TimeUnit } from "./types";
 
 export const getWeekDays = (currentWeek: Date, weekends: boolean = false): Date[] => {
     const weekDays: Date[] = [];
@@ -149,4 +147,95 @@ export const eventStyle = (
     };
 
     return textureStyles[texture] || textureStyles[EventBgTexture.Solid];
+};
+
+export const isToday = (day: Date): Boolean => {
+    const now = new Date();
+
+    const dayYear = day.getFullYear();
+    const dayMonth = day.getMonth();
+    const dayDate = day.getDate();
+
+    const nowYear = now.getFullYear();
+    const nowMonth = now.getMonth();
+    const nowDate = now.getDate();
+
+    const isYear = dayYear === nowYear;
+    const isMonth = isYear && dayMonth === nowMonth;
+    const isToday = isMonth && dayDate === nowDate;
+
+    return isToday;
+}
+
+export const isBeforeNow = (time: number, day: Date): Boolean => {
+    const now = new Date();
+    const slotDate = new Date(day);
+    slotDate.setHours(Math.floor(time / 100), time % 100);
+
+    return slotDate < now;
+};
+
+export const findTodayEvents = (slot: TimeUnit, day: Date, events?: EventType[]): EventType[] => {
+    const allEvents = events || [];
+    const { startTime, endTime } = slot;
+
+    const slotStart = new Date(day);
+    slotStart.setHours(Math.floor(startTime / 100), startTime % 100, 0, 0);
+    const slotEnd = new Date(day);
+    slotEnd.setHours(Math.floor(endTime / 100), endTime % 100, 0, 0);
+
+    const filteredEvents: EventType[] = [];
+
+    for (const event of allEvents) {
+        const { backgroundColor, endDate, startDate, id, title, type } = event;
+
+        if (startDate.toDateString() === day.toDateString() && endDate.toDateString() === day.toDateString()) {
+            if (endDate > slotStart && startDate < slotEnd) {
+                if (type === 'availability') {
+                    filteredEvents.push({
+                        backgroundColor,
+                        endDate,
+                        startDate,
+                        id,
+                        title,
+                        type: 'availability',
+                        extendedProps: event.extendedProps,
+                    } as AvailabilityEvent);
+                } else if (type === 'exam') {
+                    filteredEvents.push({
+                        backgroundColor,
+                        endDate,
+                        startDate,
+                        id,
+                        title,
+                        type: 'exam',
+                        extendedProps: event.extendedProps,
+                    } as ExamEvent);
+                } else if (type === 'shift') {
+                    filteredEvents.push({
+                        backgroundColor,
+                        endDate,
+                        startDate,
+                        id,
+                        title,
+                        type: 'shift',
+                        shiftType: event.shiftType,
+                        extendedProps: event.extendedProps,
+                    } as ShiftEvent);
+                } else if (type === 'overlap') {
+                    filteredEvents.push({
+                        backgroundColor,
+                        endDate,
+                        startDate,
+                        id,
+                        title,
+                        type: 'overlap',
+                        extendedProps: event.extendedProps,
+                    } as OverlapEvent);
+                }
+            }
+        }
+    }
+
+    return filteredEvents;
 };

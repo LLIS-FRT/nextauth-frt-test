@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import TimeSlots from "./TimeSlots";
-import { DayColumnProps } from "./types";
-import { formatWeekHeaderDate } from "./utils";
+import { DayColumnProps, Slot, TimeUnit, EventType, AvailabilityEvent, ExamEvent, ShiftEvent, OverlapEvent } from "./types";
+import { formatWeekHeaderDate, isBeforeNow } from "./utils";
 
 const DayColumn: React.FC<DayColumnProps> = ({
     allPossibleTimeUnits,
@@ -31,17 +31,133 @@ const DayColumn: React.FC<DayColumnProps> = ({
     }, []);
 
     const selectAllSlotsOfDay = () => {
-        const allSlotsOfDay = allPossibleTimeUnits.map(slot => ({ slot, day }));
-
         // If all slots are already selected, unselect all of this day's slots
         if (selectedSlots.some(slot => slot.day.toDateString() === day.toDateString())) {
             setSelectedSlots(selectedSlots.filter(slot => slot.day.toDateString() !== day.toDateString()));
         } else {
-            return;
-            // TODO: We need to add logic to prevent the selection of unselectable slots
-            setSelectedSlots([...selectedSlots, ...allSlotsOfDay]);
+            const isSelectable = (slot: { slot: TimeUnit; day: Date; }) => {
+                const selectableBasedOnTime = !isBeforeNow(slot.slot.startTime, day) && selectable;
+                const nowEvent = findTodayEvents(day, events);
+                const selectableBasedOnEvents = nowEvent.length == 0;
+
+                return selectableBasedOnTime && selectableBasedOnEvents;
+            }
+
+            const finalSlotsToSelect = allPossibleTimeUnits.filter(slot => isSelectable(slot));
+
+            const newSelectedSlots = [...selectedSlots, ...finalSlotsToSelect];
+            setSelectedSlots(newSelectedSlots);
         }
     }
+
+    //#region Calculate Correct Slots
+    const findMissingSlots = (timeUnits: Slot[]): Slot[] => {
+        const missingSlots: Slot[] = [];
+
+        for (let i = 0; i < timeUnits.length - 1; i++) {
+            const currentSlot = timeUnits[i].slot;
+            const nextSlot = timeUnits[i + 1].slot;
+
+            if (currentSlot.endTime < nextSlot.startTime) {
+                missingSlots.push({
+                    day: day,
+                    slot: {
+                        name: `break-${i}`,
+                        startTime: currentSlot.endTime,
+                        endTime: nextSlot.startTime,
+                        isBreak: true,
+                        isSelectable: false
+                    }
+                });
+            }
+        }
+
+        return missingSlots;
+    };
+
+    const sortedTimeUnits = [...allPossibleTimeUnits].sort((a, b) => a.slot.startTime - b.slot.startTime);
+    const missingSlots = findMissingSlots(sortedTimeUnits);
+    const allSlots = [...sortedTimeUnits, ...missingSlots].sort((a, b) => a.slot.startTime - b.slot.startTime);
+
+    const allFormattedSlots: Slot[] = [];
+
+    for (let i = 0; i < allSlots.length; i++) {
+        const { day, slot } = allSlots[i];
+        const selectable = !isBeforeNow(slot.startTime, day);
+
+        allFormattedSlots.push({
+            day,
+            slot: {
+                endTime: slot.endTime,
+                isSelectable: selectable && selectable,
+                name: slot.name,
+                startTime: slot.startTime,
+                isBreak: slot.isBreak
+            }
+        })
+    }
+    //#endregion
+
+    //#region Calculate Events for given day
+    const findTodayEvents = (day: Date, events?: EventType[]): EventType[] => {
+        const allEvents = events || [];
+
+        const filteredEvents: EventType[] = [];
+
+        for (const event of allEvents) {
+            const { backgroundColor, endDate, startDate, id, title, type } = event;
+
+            if (startDate.toDateString() === day.toDateString() && endDate.toDateString() === day.toDateString()) {
+
+                if (type === 'availability') {
+                    filteredEvents.push({
+                        backgroundColor,
+                        endDate,
+                        startDate,
+                        id,
+                        title,
+                        type: 'availability',
+                        extendedProps: event.extendedProps,
+                    } as AvailabilityEvent);
+                } else if (type === 'exam') {
+                    filteredEvents.push({
+                        backgroundColor,
+                        endDate,
+                        startDate,
+                        id,
+                        title,
+                        type: 'exam',
+                        extendedProps: event.extendedProps,
+                    } as ExamEvent);
+                } else if (type === 'shift') {
+                    filteredEvents.push({
+                        backgroundColor,
+                        endDate,
+                        startDate,
+                        id,
+                        title,
+                        type: 'shift',
+                        shiftType: event.shiftType,
+                        extendedProps: event.extendedProps,
+                    } as ShiftEvent);
+                } else if (type === 'overlap') {
+                    filteredEvents.push({
+                        backgroundColor,
+                        endDate,
+                        startDate,
+                        id,
+                        title,
+                        type: 'overlap',
+                        extendedProps: event.extendedProps,
+                    } as OverlapEvent);
+                }
+            }
+        }
+        return filteredEvents;
+    };
+
+    const todayEvents = findTodayEvents(day, events);
+    //#endregion
 
     return (
         <div key={day.toDateString()} className="flex flex-col border-r">
@@ -54,15 +170,15 @@ const DayColumn: React.FC<DayColumnProps> = ({
                     {formatWeekHeaderDate(day, windowSize < 768 ? "sm" : "lg")}
                 </h3>
             </div>
+            {/* This is the timeslots for this week */}
             <TimeSlots
                 handleEventClick={handleEventClick}
-                events={events}
-                allPossibleTimeUnits={allPossibleTimeUnits}
+                events={todayEvents}
+                allPossibleTimeUnits={allFormattedSlots}
                 day={day}
                 setSelectedSlots={setSelectedSlots}
                 calendarRef={calendarRef}
                 selectedSlots={selectedSlots}
-                selectable={selectable}
             />
         </div>
     );

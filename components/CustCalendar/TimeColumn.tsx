@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatTime, getSlotHeight } from './utils';
+import { formatTime, getSlotHeight, isBeforeNow } from './utils';
 import { TimeColumnProps, TimeUnit } from './types';
 import TimeGutter from './TimeGutter';
 
@@ -18,6 +18,7 @@ const findMissingSlots = (timeUnits: TimeUnit[]): TimeUnit[] => {
         startTime: currentSlot.endTime,
         endTime: nextSlot.startTime,
         isBreak: true,
+        isSelectable: false,
       });
     }
   }
@@ -25,7 +26,7 @@ const findMissingSlots = (timeUnits: TimeUnit[]): TimeUnit[] => {
   return missingSlots;
 };
 
-const TimeColumn: React.FC<TimeColumnProps> = ({ allPossibleTimeUnits, selectedSlots, setSelectedSlots, currentWeek }) => {
+const TimeColumn: React.FC<TimeColumnProps> = ({ allPossibleTimeUnits, selectedSlots, setSelectedSlots, currentWeek, selectable }) => {
   // Combine time slots with missing slots
   const sortedTimeUnits = [...allPossibleTimeUnits].sort((a, b) => a.startTime - b.startTime);
   const missingSlots = findMissingSlots(sortedTimeUnits);
@@ -40,45 +41,71 @@ const TimeColumn: React.FC<TimeColumnProps> = ({ allPossibleTimeUnits, selectedS
         const selectAllSlotsOfTime = (s: TimeUnit) => {
           const updatedSlots = [];
 
-          // Helper function to get the Monday of the current week based on any given date
-          const getMondayOfCurrentWeek = (date: Date) => {
-            const day = date.getDay();
-            const difference = day === 0 ? -6 : 1 - day; // Adjust if it's Sunday (0), make it the previous Monday
-            const monday = new Date(date);
-            monday.setDate(date.getDate() + difference);
-            return monday;
-          };
+          // Ensure currentWeek is a Date object and represents the current week's start
+          const currentDate = new Date(currentWeek);
+          currentDate.setHours(0, 0, 0, 0); // Set to start of the day
 
-          const monday = getMondayOfCurrentWeek(currentWeek);
+          // Calculate the day of the week (0 = Sunday, 1 = Monday, etc.)
+          const dayOfWeek = currentDate.getDay();
 
-          // Now get the specific days for Monday to Friday
-          const getWeekdayDate = (startOfWeek: Date, dayOffset: number) => {
-            const date = new Date(startOfWeek);
-            date.setDate(startOfWeek.getDate() + dayOffset);
-            return date;
-          };
+          // Calculate Monday of the current week
+          const monday = new Date(currentDate);
+          monday.setDate(monday.getDate() - dayOfWeek + 1); // 1 represents Monday
+          monday.setHours(0, 0, 0, 0); // Set to the start of the day
 
-          // Calculate Monday to Friday
-          const friday = getWeekdayDate(monday, 4); // Friday is 4 days after Monday
+          // Calculate Friday by adding 4 days to Monday
+          const friday = new Date(monday);
+          friday.setDate(monday.getDate() + 4); // Friday is 4 days after Monday
+          friday.setHours(0, 0, 0, 0); // Set to the start of the day
 
           // Loop over Monday to Friday
           for (let date = new Date(monday); date <= friday; date.setDate(date.getDate() + 1)) {
-            const formattedDate = date.toISOString().split('T')[0];
+            const newDate = new Date(date); // Clone the date object
+            newDate.setHours(0, 0, 0, 0); // Set to start of the day
+
             updatedSlots.push({
-              slot: slot,
-              day: new Date(formattedDate),
+              slot: s, // Use the slot passed to the function
+              day: newDate,
             });
           }
 
+          const slotsSelectedForCurrentWeekAndTime =
+            selectedSlots.some(slot => {
+              const currentSlotDay = new Date(slot.day);
+              currentSlotDay.setHours(0, 0, 0, 0); // Ensure the time is set to the start of the day
+
+              const isDuringCurrentWeek = currentSlotDay >= monday && currentSlotDay <= friday;
+              const isDuringTime = slot.slot.startTime === s.startTime;
+
+              return isDuringCurrentWeek && isDuringTime;
+            });
+
           // Now we check if any of these slots have already been selected
-          // If so, we deselect all of these slots but only these ones
-          if (selectedSlots.some(slot => slot.slot.startTime === s.startTime)) {
-            // TODO: Deselecting a slotlane will also deselect it for the next week
-            setSelectedSlots(selectedSlots.filter(slot => slot.slot.startTime !== s.startTime));
+          if (slotsSelectedForCurrentWeekAndTime) {
+            const filterSlots = selectedSlots.filter(slot => {
+              const currentSlotDay = new Date(slot.day);
+              currentSlotDay.setHours(0, 0, 0, 0); // Ensure the time is set to the start of the day
+
+              const isDuringCurrentWeek = currentSlotDay >= monday && currentSlotDay <= friday;
+              const isDuringTime = slot.slot.startTime === s.startTime;
+
+              return !(isDuringCurrentWeek && isDuringTime); // Only deselect if both conditions are met
+            });
+
+            setSelectedSlots(filterSlots);
           } else {
-            // TODO: We need to add logic to prevent the selection of unselectable slots
+            // Selecting logic
+            const isSelectable = (slot: { slot: TimeUnit; day: Date; }) => {
+              const selectableBasedOnTime = !isBeforeNow(slot.slot.startTime, slot.day) && selectable;
+
+              // TODO: Additional logic to prevent selection based on events can be added here
+
+              return selectableBasedOnTime;
+            };
+
             return
-            setSelectedSlots([...selectedSlots, ...updatedSlots]);
+            const finalSlotsToSelect = updatedSlots.filter(slot => isSelectable(slot));
+            setSelectedSlots([...selectedSlots, ...finalSlotsToSelect]);
           }
         };
 
@@ -89,14 +116,9 @@ const TimeColumn: React.FC<TimeColumnProps> = ({ allPossibleTimeUnits, selectedS
             style={{ height: `${height}px` }} // Inline style for dynamic height
             onClick={() => selectAllSlotsOfTime(slot)}
           >
-            {!slot.isBreak && (
-              <div className="flex flex-col sm:flex-row sm:items-center">
-                <div>{formatTime(slot.startTime)}</div>
-                {/* Hide the dash on small screens */}
-                <span className="hidden sm:inline mx-1">-</span>
-                <div>{formatTime(slot.endTime)}</div>
-              </div>
-            )}
+            {!slot.isBreak ? (
+              <TimeCell slot={slot} />
+            ) : null}
           </div>
         );
       })}
@@ -105,3 +127,14 @@ const TimeColumn: React.FC<TimeColumnProps> = ({ allPossibleTimeUnits, selectedS
 };
 
 export default TimeColumn;
+
+const TimeCell = ({ slot }: { slot: TimeUnit }) => {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center">
+      <div>{formatTime(slot.startTime)}</div>
+      {/* Hide the dash on small screens */}
+      <span className="hidden sm:inline mx-1">-</span>
+      <div>{formatTime(slot.endTime)}</div>
+    </div>
+  );
+};

@@ -2,10 +2,16 @@ export interface TimeUnit {
     name: string; // Name or identifier for the time unit
     startTime: number; // Start time in HHMM format (e.g., 0930 for 9:30 AM)
     endTime: number; // End time in HHMM format (e.g., 1030 for 10:30 AM)
+    isSelectable: boolean; // Flag to indicate if the time unit is selectable
     isBreak?: boolean; // Flag to indicate if the time unit is a break
 }
 
 export interface SelectedSlot {
+    slot: TimeUnit; // The time slot that has been selected
+    day: Date; // The day the slot belongs to
+}
+
+export interface Slot {
     slot: TimeUnit; // The time slot that has been selected
     day: Date; // The day the slot belongs to
 }
@@ -61,7 +67,7 @@ export interface DayColumnProps {
     calendarRef: React.RefObject<HTMLDivElement>;
     setSelectedSlots: React.Dispatch<React.SetStateAction<{ slot: TimeUnit; day: Date }[]>>;
     selectedSlots: { slot: TimeUnit; day: Date }[];
-    allPossibleTimeUnits: TimeUnit[];
+    allPossibleTimeUnits: { slot: TimeUnit; day: Date }[];
     events?: EventType[];
     handleEventClick: (event: EventType, type: EventType['type']) => void;
     selectable: boolean;
@@ -73,27 +79,24 @@ export interface TimeSlotProps {
     handleMouseDown: (slot: TimeUnit, day: Date) => void; // Handle mouse down for starting drag
     handleMouseUp: (slot: TimeUnit, day: Date) => void; // Handle mouse up for ending drag
     handleSlotClick: (slot: TimeUnit, day: Date) => void; // Handle click on a slot
-    allPossibleTimeUnits: TimeUnit[]; // List of all possible time units
+    allPossibleTimeUnits: Slot[]; // List of all possible time units
     day: Date; // The specific day for this time slot
     isDragging: boolean; // Indicates if dragging is in progress
     dragStart: { slot: TimeUnit; day: Date } | null; // Start of the drag range
     dragEnd: { slot: TimeUnit; day: Date } | null; // End of the drag range
-    slot: TimeUnit; // Current time slot
-    events: EventType[]; // List of events for this time slot
-    handleEventClick: (event: EventType, type: EventType['type']) => void;
+    slot: Slot; // Current time slot
     children?: React.ReactNode;
-    selectable: Boolean;
+    height: number;
 }
 
 export interface TimeSlotsProps {
     selectedSlots: { slot: TimeUnit; day: Date }[];
-    allPossibleTimeUnits: TimeUnit[];
+    allPossibleTimeUnits: Slot[];
     day: Date;
     setSelectedSlots: React.Dispatch<React.SetStateAction<{ slot: TimeUnit; day: Date }[]>>
     calendarRef: React.RefObject<HTMLDivElement>;
     events?: EventType[];
     handleEventClick: (event: EventType, type: EventType['type']) => void;
-    selectable: Boolean;
 }
 
 export interface TimeColumnProps {
@@ -101,6 +104,7 @@ export interface TimeColumnProps {
     selectedSlots: { slot: TimeUnit; day: Date }[];
     setSelectedSlots: React.Dispatch<React.SetStateAction<{ slot: TimeUnit; day: Date }[]>>
     currentWeek: Date;
+    selectable: Boolean;
 }
 
 export enum EventBgColor {

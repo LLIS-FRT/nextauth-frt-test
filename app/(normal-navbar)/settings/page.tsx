@@ -4,7 +4,7 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useState, useTransition } from "react";
-import { getSession, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 import { SettingsSchema } from "@/schemas";
 import {
@@ -32,8 +32,6 @@ import { UserRole } from "@prisma/client";
 import { Switch } from "@/components/ui/switch";
 import { RoleGate } from "@/components/auth/roleGate";
 import PasswordField from "@/components/auth/PasswordField";
-import { GetServerSideProps } from "next";
-import { ExtendedUser } from "@/next-auth";
 
 const formatRole = (role: UserRole) => {
     // Convert the role to a string
@@ -59,22 +57,6 @@ const formatRole = (role: UserRole) => {
 
     return formattedRole;
 }
-
-const useDebounce = (value: string, delay: number) => {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedValue(value);
-        }, delay);
-
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [value, delay]);
-
-    return debouncedValue;
-};
 
 const SettingsPage = () => {
     const user = useCurrentUser();
@@ -138,188 +120,189 @@ const SettingsPage = () => {
         }
     }, [form, user]);
 
-    // TODO: Mobile responsive
     return (
-        <Card className="w-full sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px]">
-            <CardHeader>
-                <p className="text-2xl font-semibold text-center">
-                    ⚙️ Settings
-                </p>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form
-                        className="space-y-6"
-                        onSubmit={form.handleSubmit(onSubmit)}
-                    >
-                        <div className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="firstName"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>First Name</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                placeholder="First Name"
-                                                disabled={isPending}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="lastName"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Last Name</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                placeholder="Last Name"
-                                                disabled={isPending}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="IAM"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>IAM</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                {...field}
-                                                placeholder="DoeJo123"
-                                                disabled={isPending}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            {user?.isOAuth === false && (
-                                <>
-                                    <FormField
-                                        control={form.control}
-                                        name="email"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Email</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        {...field}
-                                                        placeholder="john.doe@example.com"
-                                                        type="email"
-                                                        disabled={isPending}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="password"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Password</FormLabel>
-                                                <FormControl>
-                                                    <PasswordField disabled={isPending} field={field} placeholder="******" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="newPassword"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>New Password</FormLabel>
-                                                <FormControl>
-                                                    <PasswordField disabled={isPending} field={field} placeholder="******" />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </>
-                            )}
-                            <RoleGate
-                                allowedRoles={[UserRole.ADMIN]}
-                                requireAll={false}
-                                showMessage
-                            >
+        <div className="h-full w-full">
+            <Card className="w-full sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px] mt-5">
+                <CardHeader>
+                    <p className="text-2xl font-semibold text-center">
+                        ⚙️ Settings
+                    </p>
+                </CardHeader>
+                <CardContent>
+                    <Form {...form}>
+                        <form
+                            className="space-y-6"
+                            onSubmit={form.handleSubmit(onSubmit)}
+                        >
+                            <div className="space-y-4">
                                 <FormField
                                     control={form.control}
-                                    name="roles"
+                                    name="firstName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Roles</FormLabel>
-                                            <MultiSelector
-                                                loop
-                                                onValuesChange={field.onChange}
-                                                values={field.value}
-                                                disabled={isPending}
-                                            >
-                                                <MultiSelectorTrigger>
-                                                    <MultiSelectorInput placeholder="Select your roles" />
-                                                </MultiSelectorTrigger>
-                                                <MultiSelectorContent>
-                                                    <MultiSelectorList>
-                                                        {Object.values(UserRole).map((role) => (
-                                                            <MultiSelectorItem key={role} value={role}>{formatRole(role)}</MultiSelectorItem>
-                                                        ))}
-                                                    </MultiSelectorList>
-                                                </MultiSelectorContent>
-                                            </MultiSelector>
-                                        </FormItem>
-                                    )}
-                                />
-                            </RoleGate>
-                            {user?.isOAuth === false && (
-                                <FormField
-                                    control={form.control}
-                                    name="isTwoFactorEnabled"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row justify-between items-center rounded-lg border p-3 shadow-sm">
-                                            <div className="space-y-0.5">
-                                                <FormLabel>Two Factor Authentication</FormLabel>
-                                                <FormDescription>
-                                                    Enable two factor authentication for your account.</FormDescription>
-                                            </div>
+                                            <FormLabel>First Name</FormLabel>
                                             <FormControl>
-                                                <Switch
+                                                <Input
+                                                    {...field}
+                                                    placeholder="First Name"
                                                     disabled={isPending}
-                                                    checked={field.value}
-                                                    onCheckedChange={field.onChange}
                                                 />
                                             </FormControl>
+                                            <FormMessage />
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="lastName"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Last Name</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    placeholder="Last Name"
+                                                    disabled={isPending}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="IAM"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>IAM</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    {...field}
+                                                    placeholder="DoeJo123"
+                                                    disabled={isPending}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                {user?.isOAuth === false && (
+                                    <>
+                                        <FormField
+                                            control={form.control}
+                                            name="email"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Email</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            {...field}
+                                                            placeholder="john.doe@example.com"
+                                                            type="email"
+                                                            disabled={isPending}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="password"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Password</FormLabel>
+                                                    <FormControl>
+                                                        <PasswordField disabled={isPending} field={field} placeholder="******" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="newPassword"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>New Password</FormLabel>
+                                                    <FormControl>
+                                                        <PasswordField disabled={isPending} field={field} placeholder="******" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </>
+                                )}
+                                <RoleGate
+                                    allowedRoles={[UserRole.ADMIN]}
+                                    requireAll={false}
+                                    showMessage
+                                >
+                                    <FormField
+                                        control={form.control}
+                                        name="roles"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Roles</FormLabel>
+                                                <MultiSelector
+                                                    loop
+                                                    onValuesChange={field.onChange}
+                                                    values={field.value}
+                                                    disabled={isPending}
+                                                >
+                                                    <MultiSelectorTrigger>
+                                                        <MultiSelectorInput placeholder="Select your roles" />
+                                                    </MultiSelectorTrigger>
+                                                    <MultiSelectorContent>
+                                                        <MultiSelectorList>
+                                                            {Object.values(UserRole).map((role) => (
+                                                                <MultiSelectorItem key={role} value={role}>{formatRole(role)}</MultiSelectorItem>
+                                                            ))}
+                                                        </MultiSelectorList>
+                                                    </MultiSelectorContent>
+                                                </MultiSelector>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </RoleGate>
+                                {user?.isOAuth === false && (
+                                    <FormField
+                                        control={form.control}
+                                        name="isTwoFactorEnabled"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row justify-between items-center rounded-lg border p-3 shadow-sm">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel>Two Factor Authentication</FormLabel>
+                                                    <FormDescription>
+                                                        Enable two factor authentication for your account.</FormDescription>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        disabled={isPending}
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
 
-                            )}
-                        </div>
-                        <FormError message={error} />
-                        <FormSuccess message={success} />
-                        <Button
-                            disabled={isPending || form.formState.isSubmitting}
-                            type="submit"
-                        >
-                            {isPending ? "Loading..." : "Save"}
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+                                )}
+                            </div>
+                            <FormError message={error} />
+                            <FormSuccess message={success} />
+                            <Button
+                                disabled={isPending || form.formState.isSubmitting}
+                                type="submit"
+                            >
+                                {isPending ? "Loading..." : "Save"}
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+        </div>
     )
 }
 

@@ -36,7 +36,7 @@ const CalendarPage = () => {
   const [examModalOpen, setExamModalOpen] = useState(false);
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
-  
+
   const queryClient = useQueryClient();
 
   const user = useCurrentUser();
@@ -44,7 +44,7 @@ const CalendarPage = () => {
   const isIAM = user?.id ? false : true;
 
   const { refetch: refetchAvailabilitiesByUser, isLoading } = useQuery({
-    queryKey: ["availabilities", id, isIAM],
+    queryKey: ["availabilities", "user", { userID: id, isIAM }],
     staleTime: 1000 * 60 * 5,
     enabled: !!id,
     queryFn: async () => {
@@ -351,7 +351,7 @@ const CalendarPage = () => {
   };
 
   return (
-    <div className="bg-white max-h-full">
+    <div className="bg-white h-full w-full">
       <div>
         <h1 className="text-3xl font-bold">Calendar</h1>
         <p className="text-lg">This page is still in development and may have many bugs and errors. Please report unexpected behaviour asap.</p>

@@ -21,6 +21,7 @@ export default auth(async (req) => {
     const isAuthRoute = authRoutes.includes(pathName);
 
     if (isApiAuthRoute) {
+        console.info("API authentication route detected");
         return;
     }
 

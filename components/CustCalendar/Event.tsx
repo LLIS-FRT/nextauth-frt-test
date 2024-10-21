@@ -1,16 +1,14 @@
-import React from 'react';
 import { EventType } from './types';
 import { eventStyle, getTexture } from './utils';
+import { cn } from '@/lib/utils';
 
 interface EventProps {
     event: EventType;
-    index: number; // Index to handle overlapping events
-    totalEvents: number; // Total number of overlapping events in this time slot
+    index: number;
+    totalEvents: number;
     handleEventClick: (event: EventType, type: EventType['type']) => void;
-    timeSlotHeight: number; // Height of the time slot to make the event full height
-    containerWidth: number; // Width of the container holding the events
-    isFirstSlot: boolean; // Indicates if this is the first slot for the event
-    isLastSlot: boolean;
+    totalHeight: number;
+    containerWidth: number;
 }
 
 const Event: React.FC<EventProps> = ({
@@ -18,57 +16,45 @@ const Event: React.FC<EventProps> = ({
     index,
     totalEvents,
     handleEventClick,
-    timeSlotHeight,
+    totalHeight,
     containerWidth,
-    isFirstSlot,
-    isLastSlot
 }) => {
-
-    // Calculate the width and offset dynamically based on the number of overlapping events
-    const leftOffset = (100 / totalEvents) * index; // Dynamically calculate based on the event index and totalEvents
-    const eventWidthPercentage = 100 / totalEvents; // Width as a percentage
-    const eventWidthPx = (containerWidth * eventWidthPercentage) / 100; // Convert percentage to pixels
-    const eventHeight = timeSlotHeight; // Full height of the time slot
-
+    const eventWidthPx = containerWidth / totalEvents;
     const color = event.backgroundColor;
     const texture = getTexture(color);
     const style = eventStyle(color, texture);
-
-    let className = 'absolute p-1 text-white text-xs border-r border-l border-black';
-
-    if (isFirstSlot) {
-        className += ' border-t';
-    }
-
-    if (isLastSlot) {
-        className += ' border-b';
-    }
+    const isExam = event.type === 'exam';
 
     return (
         <div
-            className={className}
+            className={cn(
+                'absolute p-1 text-white text-xs border-r border-l border-black cursor-pointer border rounded',
+                isExam && 'cursor-not-allowed'
+            )}
             style={{
                 ...style,
                 color: 'black',
-                top: 0, // Start from the top of the time slot
-                left: `${leftOffset}%`, // Position horizontally based on the index (in percentage)
-                width: `${eventWidthPx}px`, // Dynamically calculated width in pixels
-                height: `${eventHeight}px`, // Full height of the time slot
-                zIndex: index + 1, // Ensure overlapping events are visible
-                overflow: 'hidden', // Ensure content doesn't overflow
-                textOverflow: 'ellipsis', // Shorten long titles
-                whiteSpace: 'nowrap', // Prevent text from wrapping
-                cursor: event.type === 'exam' ? 'not-allowed' : 'pointer', // Disable cursor for exams
+                top: 0,
+                width: `${eventWidthPx}px`,
+                height: `${totalHeight}px`,
+                zIndex: index + 1,
+                overflow: 'hidden',
             }}
             onClick={() => handleEventClick(event, event.type)}
         >
-            {
-                isFirstSlot ? (
-                    <div>
-                        {event.title}
-                    </div >
-                ) : ''}
-        </div >
+            <div
+                className="bg-white p-1 rounded shadow text-center overflow-ellipsis"
+                style={{
+                    display: 'inline-block',  // Ensure the width fits the content
+                    maxWidth: '100%',         // Prevent overflow from the container
+                    fontSize: 'clamp(10px, 2vw, 14px)', // Dynamically resize font
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',     // Keep text on a single line
+                }}
+            >
+                {event.title}
+            </div>
+        </div>
     );
 };
 

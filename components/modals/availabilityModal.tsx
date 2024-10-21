@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Availability, UserRole } from '@prisma/client';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { getAvailabilities } from '@/actions/data/availability';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface AvailabilityModalProps {
   modalOpen: boolean;
@@ -17,24 +19,26 @@ interface AvailabilityModalProps {
 
 export const AvailabilityModal = ({ modalOpen, setModalOpen, selectedEvent, reload }: AvailabilityModalProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [event, setEvent] = useState<Availability | null>(null);
-  const [loadingEvent, setLoadingEvent] = useState(true);
 
   const currentUser = useCurrentUser();
+  const id = selectedEvent?.id;
 
-  useEffect(() => {
-    if (!selectedEvent) return;
-    const fetchEvent = async () => {
-      const res = await fetch(`/api/availability/id/${selectedEvent.id}`);
-      const data = await res.json();
-      setEvent(data.availability);
-      setLoadingEvent(false);
-    };
-    fetchEvent();
-  }, [selectedEvent]);
+  const queryClient = useQueryClient();
+
+  const { isLoading: loadingAvailability, refetch: refetchAvailability, data: availability } = useQuery({
+    queryKey: ["availabilities", "single", { id }],
+    staleTime: 1000 * 60 * 5,
+    enabled: !!id, // Ensure the query is only triggered if id is present
+    queryFn: async () => {
+      console.log("Here 2")
+      const res = await getAvailabilities(id);
+      const { availabilities } = res;
+      return availabilities[0]; // Return the specific availability
+    },
+  });
+
 
   if (!selectedEvent) return null;
-  const id = selectedEvent.id;
 
   const onEdit = () => {
     setIsEditing((prev) => !prev);
@@ -60,20 +64,21 @@ export const AvailabilityModal = ({ modalOpen, setModalOpen, selectedEvent, relo
   }
 
   const ButtonList = () => {
-    if (!event) return null;
-    if (!currentUser) return null;
-
-    const isCurrentUser = event.userId === currentUser.id;
-    const isAdmin = currentUser.roles?.includes(UserRole.ADMIN);
-
-    if (!isCurrentUser && !(isCurrentUser || isAdmin)) return null;
+    const isCurrentUser = availability?.userId === currentUser?.id;
+    const isAdmin = currentUser?.roles?.includes(UserRole.ADMIN);
 
     if (!reload) throw new Error("reload is not defined");
 
+    const canDelete = (isCurrentUser || isAdmin) && !loadingAvailability;
+    const canEdit = isCurrentUser && !loadingAvailability;
+
     return (
       <>
-        {isCurrentUser && <Button variant={"outline"} onClick={onEdit}>Edit</Button>}
-        {(isCurrentUser || isAdmin) && <Button variant={"destructive"} onClick={onDelete}>Delete</Button>}
+        {canEdit ?
+          <Button variant={"outline"} onClick={onEdit}>Edit</Button>
+          : <Button variant={"outline"} disabled>Edit</Button>
+        }
+        <Button variant={"destructive"} onClick={onDelete} disabled={!canDelete}>Delete</Button>
       </>
     )
   }
@@ -89,7 +94,7 @@ export const AvailabilityModal = ({ modalOpen, setModalOpen, selectedEvent, relo
               {selectedEvent?.type}
             </DialogDescription>
           </DialogHeader>
-          {!loadingEvent && ButtonList() !== null && (
+          {ButtonList() !== null && (
             <DialogFooter>
               <ButtonList />
             </DialogFooter>

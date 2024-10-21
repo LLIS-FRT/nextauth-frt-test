@@ -4,6 +4,7 @@ import { getReports } from '@/actions/data/report';
 import { Report } from '@/actions/data/types';
 import { RoleGate } from '@/components/auth/roleGate';
 import ReportCards from '@/components/reports/reportCards';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UserRole } from '@prisma/client';
@@ -113,53 +114,57 @@ const ReportsPage = () => {
         setFilteredReports(filteredReports);
     };
 
+    // TODO: Make more mobile friendly
+
     return (
-        <div className="flex bg-white w-full" style={{ height: "calc(100vh - 72px)" }}>
+        <div className="flex w-full min-h-full">
             <RoleGate
                 allowedRoles={[
                     UserRole.USER,
                 ]}
             >
-                <div className="flex w-full">
+                <div className="flex w-full h-full">
                     {/* Search Area on the Left */}
-                    <div className="w-1/3 bg-gray-100 p-4 border-r border-gray-300">
+                    <div className="w-1/3 sm:w-1/4 bg-gray-100 p-4 border-r border-gray-300 flex flex-col">
                         <h2 className="text-lg font-semibold mb-4">Search Reports</h2>
-
-                        <SearchArea
-                            handleSearch={handleSearch}
-                        />
+                        <SearchArea handleSearch={handleSearch} />
                         <hr className="mb-2" />
-                        <div className="flex justify-between">
-
-                            <button
+                        <div className="flex justify-between flex-grow items-end w-full"> {/* Ensure flex-grow is here to push the button down */}
+                            <Button
+                                className="px-4 py-2 bg-green-500 text-white rounded-md shadow-md hover:bg-green-600 w-full"
+                                size={"lg"}
                                 onClick={handleCreateReport}
-                                className="px-4 py-2 bg-green-500 text-white rounded-md shadow-md hover:bg-green-600"
                             >
                                 Create Report
-                            </button>
+                            </Button>
                         </div>
                     </div>
 
                     {/* Reports Display on the Right */}
-                    <div className="w-2/3 bg-white p-4">
+                    <div className="w-2/3 sm:w-3/4 bg-white p-4 flex flex-col h-full overflow-y-auto"> {/* Allow this section to scroll */}
                         {isLoadingReports ? (
-                            <div className="flex items-center justify-center bg-white w-full" style={{ height: "calc(100vh - 72px)" }}>
+                            <div className="flex items-center justify-center bg-white w-full flex-grow">
                                 <p>Loading...</p>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center bg-white w-full" style={{ height: "calc(100vh - 72px)" }}>
+                            <div className="flex flex-col items-center bg-white w-full flex-grow">
                                 <h1 className="text-2xl text-center font-bold mb-4 w-full">Reports</h1>
                                 {isErrorReports ? (
-                                    <div className="flex items-center justify-center bg-white w-full" style={{ height: "calc(100vh - 72px)" }}>
+                                    <div className="flex items-center justify-center bg-white w-full flex-grow">
                                         <p>{error.message}</p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 flex-grow overflow-y-auto"> {/* Allow this to scroll */}
                                         {filteredReports && filteredReports.map((report) => (
                                             <ReportCards key={report.id} report={report} />
                                         ))}
+                                        {/* Example placeholder content */}
+                                        {Array.from({ length: 50 }).map((_, index) => (
+                                            <div key={index} className="h-10 bg-gray-200">Placeholder</div>
+                                        ))}
                                     </div>
                                 )}
+                                <div className="h-10 bg-transparent"></div> {/* Optional padding for scrolling effect */}
                             </div>
                         )}
                     </div>
