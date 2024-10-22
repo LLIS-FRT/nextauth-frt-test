@@ -64,7 +64,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
 
                         const newlySelectedSlots = selectedRange.filter(newSlot =>
                             newSlot.isSelectable &&
-                            newSlot.isBreak &&
+                            !newSlot.isBreak &&
                             !existingDaySlots.some(existingSlot => existingSlot.slot === newSlot));
 
                         const updatedDaySlots = [
