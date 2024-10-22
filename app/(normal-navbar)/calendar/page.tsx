@@ -15,13 +15,26 @@ import { ExamModal } from '@/components/modals/examModal';
 import { getExams } from '@/actions/data/exams';
 import { getShifts } from '@/actions/data/shift';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createAvailability, getAvailabilitiesByUser } from '@/actions/data/availability';
+import { createAvailability, deleteAvailability, getAvailabilitiesByUser, updateAvailability } from '@/actions/data/availability';
 import { timeunits } from '@/constants';
 import { getHolidays } from '@/actions/data/holidays';
 
 interface EventValidationError {
   startDate: Date;
   endDate: Date;
+}
+
+interface CreateAvailabilityObj {
+  startDate: Date;
+  endDate: Date;
+  userId: string;
+}
+
+interface UpdateAvailabilityObj {
+  startDate: Date;
+  endDate: Date;
+  userId: string;
+  id: string;
 }
 
 const CalendarPage = () => {
@@ -172,6 +185,31 @@ const CalendarPage = () => {
     },
   });
 
+  const { mutateAsync: server_updateAvailability, isPending: isPendingUpdate } = useMutation({
+    mutationFn: ({ id, data }: {
+      id: string,
+      data?: Omit<Availability, "id" | "confirmed" | "confirmedAt" | "confirmedByuserId">
+    }) => updateAvailability(id, data),
+    onError: () => {
+      toast.error("Failed to create availability");
+    },
+    onSuccess: () => {
+      // Invalidate the specific query to refresh the availabilities for the user
+      queryClient.invalidateQueries({ queryKey: ["availabilities", "user", { userID: id, isIAM }] });
+    }
+  });
+
+  const { mutateAsync: server_deleteAvailability, isPending: isPendingDelete } = useMutation({
+    mutationFn: deleteAvailability,
+    onError: () => {
+      toast.error("Failed to create availability");
+    },
+    onSuccess: () => {
+      // Invalidate the specific query to refresh the availabilities for the user
+      queryClient.invalidateQueries({ queryKey: ["availabilities", "user", { userID: id, isIAM }] });
+    }
+  });
+
   // Set calendar events whenever availabilities or exams change
   useEffect(() => {
     setLoadingCalEvents(true);
@@ -205,19 +243,109 @@ const CalendarPage = () => {
       if (event !== null) newEvents.push(event);
     });
 
-    // TODO: We check if the availabilies aren't overlapping
-
     // If the dbAvailabilities array is not empty, save it to the database
     if (dbAvailabilities.length > 0 && errors.length === 0) {
-      const userID = user?.id;
-      if (!userID) throw new Error('User ID not found');
+      const userId = user?.id;
+      if (!userId) throw new Error('User ID not found');
 
-      for (const availability of dbAvailabilities) {
+      const existingAvailabilities: EventType[] = [...availabilities]; // Clone existing availabilities to modify
+      const availabilitiesToBeCreated: CreateAvailabilityObj[] = []; // New availabilities to be created
+      const availabilitiesToBeUpdated: UpdateAvailabilityObj[] = []; // Existing availabilities to be updated
+      const availabilitiesToBeDeleted: string[] = []; // Existing availabilities to be deleted
+
+      // Helper function to check if two availabilities can be merged
+      const canCombine = (avail1: Availability, avail2: EventType) => {
+        // Combine if availabilities overlap or are adjacent
+        return (
+          new Date(avail1.endDate) >= new Date(avail2.startDate) && // End date of avail1 is after start date of avail2
+          new Date(avail2.endDate) >= new Date(avail1.startDate) && // End date of avail2 is after start date of avail1
+          new Date(avail1.startDate) <= new Date(avail2.endDate) && // Start date of avail1 is before end date of avail2
+          new Date(avail2.startDate) <= new Date(avail1.endDate) // Start date of avail2 is before end date of avail1
+        );
+      };
+
+      // Merge two availabilities into one
+      const mergeAvailabilities = (avail1: Availability, avail2: EventType) => {
+        return {
+          startDate: new Date(Math.min(new Date(avail1.startDate).getTime(), new Date(avail2.startDate).getTime())),
+          endDate: new Date(Math.max(new Date(avail1.endDate).getTime(), new Date(avail2.endDate).getTime())),
+          userId, // Assuming both availabilities belong to the same user
+          id: avail2.id // Keep the existing availability ID for updating
+        };
+      };
+
+      // TODO: BIG ISSUE, deletes all availabilities when creating a new one
+
+      // Check and combine new availabilities with existing ones
+      // Check and combine new availabilities with existing ones
+      dbAvailabilities.forEach(newAvailability => {
+        let mergedAvailability = newAvailability;
+        let hasMerged = false;
+
+        // Keep merging with existing availabilities until no more can be merged
+        let i = 0;
+        while (i < existingAvailabilities.length) {
+          const existingAvailability = existingAvailabilities[i];
+
+          if (canCombine(mergedAvailability, existingAvailability)) {
+            // Merge the availabilities
+            mergedAvailability = mergeAvailabilities(mergedAvailability, existingAvailability);
+
+            // Remove the existing availability from the list
+            existingAvailabilities.splice(i, 1);
+            hasMerged = true;
+
+            // Reset index to recheck all existing availabilities
+            i = 0;
+          } else {
+            i++; // Only increment if no merge
+          }
+        }
+
+        // After finishing all merges, decide whether to update or create
+        if (hasMerged) {
+          availabilitiesToBeUpdated.push(mergedAvailability); // Push fully merged availability
+
+          // Check for deletions
+          existingAvailabilities.forEach(existing => {
+            const fullyCovers =
+              new Date(mergedAvailability.startDate) <= new Date(existing.startDate) &&
+              new Date(mergedAvailability.endDate) >= new Date(existing.endDate);
+
+            // Only delete existing availabilities that are fully covered and are not the one being updated
+            if (fullyCovers && existing.id !== mergedAvailability.id) {
+              availabilitiesToBeDeleted.push(existing.id); // Mark for deletion
+            }
+          });
+        } else {
+          availabilitiesToBeCreated.push(newAvailability); // If no merge, create new one
+        }
+      });
+
+      console.log({ availabilitiesToBeCreated, availabilitiesToBeUpdated, availabilitiesToBeDeleted });
+
+      for (const availability of availabilitiesToBeCreated) {
         server_createAvailability({
           endDate: availability.endDate,
           startDate: availability.startDate,
-          userId: userID
+          userId
         });
+      }
+
+      for (const availability of availabilitiesToBeUpdated) {
+        server_updateAvailability({
+          id: availability.id,
+          data: {
+            endDate: availability.endDate,
+            startDate: availability.startDate,
+            userId
+          }
+        });
+      }
+
+      for (const availabilityId of availabilitiesToBeDeleted) {
+        // Assuming you have a function to delete availabilities
+        server_deleteAvailability(availabilityId);
       }
     }
 

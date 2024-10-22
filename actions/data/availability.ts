@@ -170,3 +170,36 @@ export const deleteAvailability = protectedServerAction(
     }, {
     allowedRoles: [UserRole.MEMBER, UserRole.ADMIN],
 });
+
+/**
+ * @description Update an availability
+ * @param {string} id - The availability id to update   
+ * @param {Omit<Availability, "id" | "confirmed" | "confirmedAt" | "confirmedByuserId">} availability - The availability to update
+ * 
+ * @returns {Promise<Availability>}
+ */
+export const updateAvailability = protectedServerAction(
+    async (id: string, data?: Omit<Availability, "id" | "confirmed" | "confirmedAt" | "confirmedByuserId">) => {
+        const user = await currentUser();
+        if (!user) throw new Error("User not found");
+
+        const roles = user.roles;
+        if (!roles) throw new Error("User not found");
+
+        const isAdmin = roles.includes(UserRole.ADMIN);
+
+        const availability = await db.availability.findUnique({ where: { id }, select: { userId: true } });
+        if (!availability) throw new Error("Availability not found");
+
+        // Check if the userId is the same as the current user
+        if (availability.userId !== user.id && !isAdmin) throw new Error("Unauthorized");
+
+        const finalData = { ...data }
+
+        const updatedAvailability = await db.availability.update({ where: { id }, data: finalData });
+
+        return updatedAvailability;
+    }, {
+    allowedRoles: [UserRole.MEMBER, UserRole.ADMIN],
+    requireAll: false
+});
