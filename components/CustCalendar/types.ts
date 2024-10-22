@@ -1,9 +1,12 @@
+import { Holiday } from "webuntis";
+
 export interface TimeUnit {
     name: string; // Name or identifier for the time unit
     startTime: number; // Start time in HHMM format (e.g., 0930 for 9:30 AM)
     endTime: number; // End time in HHMM format (e.g., 1030 for 10:30 AM)
     isSelectable: boolean; // Flag to indicate if the time unit is selectable
     isBreak?: boolean; // Flag to indicate if the time unit is a break
+    holidays: Holiday[]; // Flag to indicate if the time unit is a break
 }
 
 export interface SelectedSlot {
@@ -55,6 +58,7 @@ export interface CalendarProps {
     weekends?: boolean;
     showlegend?: boolean;
     selectable?: boolean;
+    holidays?: Holiday[];
 }
 
 export interface WeekHeaderProps {
@@ -68,9 +72,8 @@ export interface DayColumnProps {
     setSelectedSlots: React.Dispatch<React.SetStateAction<{ slot: TimeUnit; day: Date }[]>>;
     selectedSlots: { slot: TimeUnit; day: Date }[];
     allPossibleTimeUnits: { slot: TimeUnit; day: Date }[];
-    events?: EventType[];
+    events: EventType[];
     handleEventClick: (event: EventType, type: EventType['type']) => void;
-    selectable: boolean;
 }
 
 export interface TimeSlotProps {
@@ -92,7 +95,7 @@ export interface TimeSlotProps {
 export interface TimeSlotsProps {
     selectedSlots: { slot: TimeUnit; day: Date }[];
     allPossibleTimeUnits: Slot[];
-    day: Date;
+    day: Date; 
     setSelectedSlots: React.Dispatch<React.SetStateAction<{ slot: TimeUnit; day: Date }[]>>
     calendarRef: React.RefObject<HTMLDivElement>;
     events?: EventType[];

@@ -19,7 +19,10 @@ const TimeSlot: React.FC<TimeSlotProps> = ({
 }) => {
     const timeUnit = slot.slot;
     const isBreak = timeUnit.isBreak;
-    const isSelectable = timeUnit.isSelectable;
+    const holidays = timeUnit.holidays;
+    const isHoliday = holidays.length > 0;
+    const isSelectable = timeUnit.isSelectable && !isBreak && !isHoliday;
+    const isFirstSlot = allPossibleTimeUnits[0].slot === timeUnit;
 
     const calculateTimePassedPercentage = (): number => {
         const { startTime, endTime } = timeUnit;
@@ -70,13 +73,12 @@ const TimeSlot: React.FC<TimeSlotProps> = ({
         return true
     }
 
-    // TODO: Fix selecting
-
     return (
         <div
-            className={classNames('border-b flex items-center justify-center relative', {
+            className={classNames('flex items-center justify-center relative', {
                 'cursor-not-allowed': !isSelectable,
-                'cursor-pointer': isSelectable
+                'cursor-pointer': isSelectable,
+                'border-b': !isHoliday
             })}
             style={{ height: `${height}px` }}
         >
@@ -88,7 +90,7 @@ const TimeSlot: React.FC<TimeSlotProps> = ({
                         (selected) => selected.slot.startTime === timeUnit.startTime && selected.day.toDateString() === day.toDateString()
                     ),
                     // Updated logic to highlight during drag
-                    'bg-blue-400': isDragging && dragStart && dragEnd &&
+                    'bg-blue-400': isDragging && dragStart && dragEnd && isSelectable &&
                         allPossibleTimeUnits.indexOf(slot) >= Math.min(
                             allPossibleTimeUnits.findIndex(
                                 s => s.slot.startTime === dragStart.slot.startTime && s.slot.endTime === dragStart.slot.endTime
@@ -105,13 +107,25 @@ const TimeSlot: React.FC<TimeSlotProps> = ({
                                 s => s.slot.startTime === dragEnd.slot.startTime && s.slot.endTime === dragEnd.slot.endTime
                             )
                         ),
-                    'bg-gray-200': isBreak,
+                    'bg-gray-200': isBreak && !isHoliday,
+                    'bg-blue-200/50': isHoliday
                 })}
                 onMouseDown={() => !isSelectable ? null : handleMouseDown(timeUnit, day)}
                 onMouseMove={(e) => !isSelectable ? null : handleMouseMove(e, timeUnit, day)}
                 onMouseUp={() => !isSelectable ? null : handleMouseUp(timeUnit, day)}
                 onClick={() => !isSelectable ? null : handleSlotClick(timeUnit, day)}
             >
+                {!isBreak && isHoliday && isFirstSlot ? (
+                    <div style={{
+                        display: 'inline-block',  // Ensure the width fits the content
+                        maxWidth: '100%',         // Prevent overflow from the container
+                        fontSize: 'clamp(10px, 2vw, 14px)', // Dynamically resize font
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                    }}>
+                        {holidays[0].longName}
+                    </div>
+                ) : null}
                 {isBreak ? null : children}
             </div>
 

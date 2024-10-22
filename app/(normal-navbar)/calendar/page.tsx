@@ -17,6 +17,7 @@ import { getShifts } from '@/actions/data/shift';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createAvailability, getAvailabilitiesByUser } from '@/actions/data/availability';
 import { timeunits } from '@/constants';
+import { getHolidays } from '@/actions/data/holidays';
 
 interface EventValidationError {
   startDate: Date;
@@ -67,6 +68,16 @@ const CalendarPage = () => {
       setAvailabilities(availabilityEvents);
 
       return availabilities;
+    }
+  })
+
+  const { refetch: refetchHolidays, isLoading: isLoadingHolidays, data: holidays } = useQuery({
+    queryKey: ["holidays"],
+    staleTime: Infinity,
+    queryFn: async () => {
+      const holidays = await getHolidays();
+
+      return holidays;
     }
   })
 
@@ -352,47 +363,42 @@ const CalendarPage = () => {
 
   return (
     <div className="bg-white h-full w-full">
-      <div>
-        <h1 className="text-3xl font-bold">Calendar</h1>
-        <p className="text-lg">This page is still in development and may have many bugs and errors. Please report unexpected behaviour asap.</p>
-      </div>
-      <div className="mt-2">
-        <RoleGate
-          allowedRoles={[
-            UserRole.ADMIN,
-            UserRole.MEMBER,
-          ]}
-        >
-          <div className="h-full w-full items-center bg-white justify-center no-scrollbar">
-            <hr className="w-full border-gray-300" />
-            <CustomCalendar
-              events={calEvents}
-              handleEventClick={(event: EventType, type: EventType['type']) => {
-                switch (type) {
-                  case "availability":
-                    setAvailabilityModalOpen(true);
-                    setSelectedEvent(event);
-                    break;
-                  case "shift":
-                    setShiftModalOpen(true);
-                    setSelectedEvent(event);
-                    break;
-                  case "exam":
-                    setExamModalOpen(true);
-                    setSelectedEvent(event);
-                    break;
-                }
-              }}
-              onValidate={onValidate}
-              selectable={!loadingCalEvents && !isLoading && !isPendingAvailability}
-            />
-          </div>
+      <RoleGate
+        allowedRoles={[
+          UserRole.ADMIN,
+          UserRole.MEMBER,
+        ]}
+      >
+        <div className="h-full w-full items-center bg-white justify-center no-scrollbar">
+          <hr className="w-full border-gray-300" />
+          <CustomCalendar
+            events={calEvents}
+            holidays={holidays}
+            handleEventClick={(event: EventType, type: EventType['type']) => {
+              switch (type) {
+                case "availability":
+                  setAvailabilityModalOpen(true);
+                  setSelectedEvent(event);
+                  break;
+                case "shift":
+                  setShiftModalOpen(true);
+                  setSelectedEvent(event);
+                  break;
+                case "exam":
+                  setExamModalOpen(true);
+                  setSelectedEvent(event);
+                  break;
+              }
+            }}
+            onValidate={onValidate}
+            selectable={!loadingCalEvents && !isLoading && !isPendingAvailability}
+          />
+        </div>
 
-          {shiftModalOpen && <ShiftModal modalOpen={shiftModalOpen} setModalOpen={setShiftModalOpen} selectedEvent={selectedEvent as ShiftEvent} />}
-          {examModalOpen && <ExamModal modalOpen={examModalOpen} setModalOpen={setExamModalOpen} selectedEvent={selectedEvent as ExamEvent} refetch={() => refetchExams()} />}
-          {availabilityModalOpen && <AvailabilityModal modalOpen={availabilityModalOpen} setModalOpen={setAvailabilityModalOpen} selectedEvent={selectedEvent as AvailabilityEvent} reload={() => refetchAvailabilitiesByUser()} />}
-        </RoleGate>
-      </div>
+        {shiftModalOpen && <ShiftModal modalOpen={shiftModalOpen} setModalOpen={setShiftModalOpen} selectedEvent={selectedEvent as ShiftEvent} />}
+        {examModalOpen && <ExamModal modalOpen={examModalOpen} setModalOpen={setExamModalOpen} selectedEvent={selectedEvent as ExamEvent} refetch={() => refetchExams()} />}
+        {availabilityModalOpen && <AvailabilityModal modalOpen={availabilityModalOpen} setModalOpen={setAvailabilityModalOpen} selectedEvent={selectedEvent as AvailabilityEvent} reload={() => refetchAvailabilitiesByUser()} />}
+      </RoleGate>
     </div>
   );
 };

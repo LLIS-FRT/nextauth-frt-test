@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { TimeUnit, TimeSlotsProps, EventType, AvailabilityEvent, ExamEvent, ShiftEvent, OverlapEvent, Slot } from './types';
+import { TimeUnit, TimeSlotsProps, EventType } from './types';
 import TimeSlot from './TimeSlot';
 import Timeline from './Timeline';
-import { getSlotHeight, isBeforeNow, isToday } from './utils';
+import { getSlotHeight, isBeforeNow, isToday, formatDate, formatTime } from './utils';
 import Event from './Event';
+
+// TODO: Add holidays
+const IS_HOLIDAY = false;
 
 const TimeSlots: React.FC<TimeSlotsProps> = ({
     selectedSlots,
@@ -59,15 +62,14 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                         const existingDaySlots = prev.filter(selected => selected.day.toDateString() === day.toDateString());
                         const nonExistingDaySlots = prev.filter(selected => selected.day.toDateString() !== day.toDateString());
 
-                        // Check the new slots are .selectable
-                        const newSlotsSelectable = selectedRange.every(selectedSlot => {
-                            console.log("Is selectable?", selectedSlot.isSelectable);
-                            return true;
-                        });
+                        const newlySelectedSlots = selectedRange.filter(newSlot =>
+                            newSlot.isSelectable &&
+                            newSlot.isBreak &&
+                            !existingDaySlots.some(existingSlot => existingSlot.slot === newSlot));
 
                         const updatedDaySlots = [
                             ...existingDaySlots,
-                            ...selectedRange.filter(newSlot => !existingDaySlots.some(existingSlot => existingSlot.slot === newSlot)).map(newSlot => ({ slot: newSlot, day }))
+                            ...newlySelectedSlots.map(newSlot => ({ slot: newSlot, day }))
                         ];
 
                         return [
@@ -147,7 +149,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                     const slotHeight = getSlotHeight(isBreak);
 
                     return (
-                        <div key={index} className={`${isBeforeNow(slot.slot.endTime, day) ? 'bg-blue-200/25' : ''}`}>
+                        <div key={index} className={`${isBeforeNow(slot.slot.endTime, day) ? 'bg-blue-200/25' : IS_HOLIDAY ? 'bg-blue-200/50' : ''}`}>
                             <TimeSlot
                                 allPossibleTimeUnits={allPossibleTimeUnits}
                                 day={day}
@@ -162,7 +164,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                                 handleSlotClick={() => handleSlotClick(slot.slot, day)}
                                 height={slotHeight}
                             >
-                               {/* {slot.slot.name} */}
+                                {/* {slot.slot.name} */}
                             </TimeSlot>
                         </div>
                     );

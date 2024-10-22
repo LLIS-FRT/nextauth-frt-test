@@ -1,6 +1,17 @@
 import { CSSProperties } from "react";
 import { AvailabilityEvent, EventBgColor, EventBgTexture, EventType, ExamEvent, OverlapEvent, ShiftEvent, TimeUnit } from "./types";
 
+export const formatDate = (input: number): Date => {
+    const inputStr = input.toString();
+
+    const formattedDate = new Date();
+    formattedDate.setFullYear(parseInt(inputStr.slice(0, 4)));
+    formattedDate.setMonth(parseInt(inputStr.slice(4, 6)) - 1);
+    formattedDate.setDate(parseInt(inputStr.slice(6, 8)));
+
+    return formattedDate;
+}
+
 export const getWeekDays = (currentWeek: Date, weekends: boolean = false): Date[] => {
     const weekDays: Date[] = [];
 
@@ -75,7 +86,7 @@ export const firstFriday = (date: Date): Date => {
 }
 
 export const formatFullDate = (date: Date): string => {
-    const options = { weekday: 'long', day: 'numeric', month: 'long' } as const;
+    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } as const;
     return date.toLocaleDateString('en-US', options);
 };
 
