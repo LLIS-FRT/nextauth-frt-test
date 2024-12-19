@@ -24,8 +24,8 @@ declare module "next-auth/jwt" {
     interface JWT {
         /** OpenID ID Token */
         user: {
-            roles?: OldUserRole[];
-            userRoles?: Role[];
+            oldRoles?: OldUserRole[];
+            roles?: Role[];
             permissions?: Permission[];
             isTwoFactorEnabled?: boolean;
             isOAuth: boolean;
@@ -108,7 +108,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 const lastActiveAt = new Date();
                 const existingAccount = await getAccountByUserId(existingUser.id);
 
-                const userRoles = existingUser.userRoles;
+                const userRoles = existingUser.roles;
                 const permissions = userRoles.map((userRole) => userRole.permissions).flat();
                 // Remove duplicates
                 const uniquePermissions = permissions.filter((permission, index) => permissions.indexOf(permission) === index);
@@ -125,9 +125,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     onboardingComplete: existingUser.onboardingComplete,
                     email: existingUser.email,
                     emailVerified: existingUser.emailVerified,
-                    roles: existingUser.roles,
+                    oldRoles: existingUser.oldRoles,
                     permissions: uniquePermissions,
-                    userRoles: userRoles,
+                    roles: userRoles,
                 };
             }
 

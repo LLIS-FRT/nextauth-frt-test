@@ -1,6 +1,6 @@
 import { currentUser, permissionsChecker, protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PermissionName, OldUserRole } from "@prisma/client";
+import { PermissionName } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 // GET all Shifts
@@ -35,7 +35,7 @@ export const POST = protectedRoute(
         const user = await currentUser();
         if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
-        const userRoles = user.roles;
+        const userRoles = user.oldRoles;
         if (!userRoles) return new NextResponse("Unauthorized", { status: 401 });
 
         const body = await req.json();

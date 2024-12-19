@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { RoleGate } from "@/components/auth/roleGate";
 import CustomCalendar from "@/components/CustCalendar/Calendar";
 import { AvailabilityEvent, EventBgColor, EventType, ExamEvent, OverlapEvent, ShiftEvent } from "@/components/CustCalendar/types";
-import { Availability, OldUserRole } from "@prisma/client";
+import { Availability, PermissionName } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import moment from 'moment';
@@ -18,6 +17,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createAvailability, deleteAvailability, getAvailabilitiesByUser, updateAvailability } from '@/actions/data/availability';
 import { getHolidays } from '@/actions/data/holidays';
 import { combineAdjacentSlots, ShiftToEvent } from '@/utils/calendar';
+import { PermissionGate } from '@/components/auth/permissionGate';
 
 interface EventValidationError {
   startDate: Date;
@@ -401,10 +401,12 @@ const CalendarPage = () => {
 
   return (
     <div className="bg-white h-full w-full">
-      <RoleGate
-        allowedRoles={[
-          OldUserRole.ADMIN,
-          OldUserRole.MEMBER,
+      <PermissionGate
+        allowedPermissions={[
+          PermissionName.VIEW_OWN_AVAILABILITY,
+          PermissionName.VIEW_OWN_SHIFT,
+          PermissionName.CREATE_OWN_AVAILABILITY,
+          PermissionName.DELETE_OWN_AVAILABILITY
         ]}
       >
         <div className="h-full w-full items-center bg-white justify-center no-scrollbar">
@@ -436,7 +438,7 @@ const CalendarPage = () => {
         {shiftModalOpen && <ShiftModal modalOpen={shiftModalOpen} setModalOpen={setShiftModalOpen} selectedEvent={selectedEvent as ShiftEvent} />}
         {examModalOpen && <ExamModal modalOpen={examModalOpen} setModalOpen={setExamModalOpen} selectedEvent={selectedEvent as ExamEvent} refetch={() => refetchExams()} />}
         {availabilityModalOpen && <AvailabilityModal modalOpen={availabilityModalOpen} setModalOpen={setAvailabilityModalOpen} selectedEvent={selectedEvent as AvailabilityEvent} reload={() => refetchAvailabilitiesByUser()} />}
-      </RoleGate>
+      </PermissionGate>
     </div>
   );
 };

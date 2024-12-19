@@ -2,13 +2,13 @@
 
 import { getReports } from '@/actions/data/report';
 import { Report } from '@/actions/data/types';
-import { RoleGate } from '@/components/auth/roleGate';
+import { PermissionGate } from '@/components/auth/permissionGate';
 import { CreateReportModal } from '@/components/modals/createReportModal';
 import ReportCard from '@/components/report/reportCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { OldUserRole } from '@prisma/client';
+import { PermissionName } from '@prisma/client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
@@ -125,9 +125,9 @@ const ReportsPage = () => {
 
     return (
         <div className="flex w-full min-h-full">
-            <RoleGate
-                allowedRoles={[
-                    OldUserRole.MEMBER,
+            <PermissionGate
+                allowedPermissions={[
+                    PermissionName.VIEW_ANY_REPORT,
                 ]}
             >
                 <div className="flex w-full h-full">
@@ -175,7 +175,7 @@ const ReportsPage = () => {
                     </div>
                 </div>
                 {createReportModalOpen && <CreateReportModal modalOpen={createReportModalOpen} setModalOpen={setCreateReportModalOpen} />}
-            </RoleGate>
+            </PermissionGate>
         </div>
     );
 };

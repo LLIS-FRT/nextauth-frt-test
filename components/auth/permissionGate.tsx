@@ -1,7 +1,6 @@
 "use client";
 
-import { useCurrentRoles } from "@/hooks/useCurrentRoles";
-import { PermissionName, OldUserRole } from "@prisma/client";
+import { PermissionName } from "@prisma/client";
 import { FormError } from "@/components/formError";
 import { useCurrentPermissions } from "@/hooks/useCurrentPermissions";
 

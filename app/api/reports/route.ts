@@ -1,7 +1,7 @@
 import { currentUser, protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { PermissionName, Report as ReportType, OldUserRole } from "@prisma/client";
+import { PermissionName, Report as ReportType } from "@prisma/client";
 
 const generateMissionNumber = async (): Promise<ReportType['missionNumber']> => {
     const date = new Date();

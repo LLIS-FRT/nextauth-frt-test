@@ -65,7 +65,7 @@ export const AvailabilityModal = ({ modalOpen, setModalOpen, selectedEvent, relo
 
   const ButtonList = () => {
     const isCurrentUser = availability?.userId === currentUser?.id;
-    const isAdmin = currentUser?.roles?.includes(OldUserRole.ADMIN);
+    const isAdmin = currentUser?.oldRoles?.includes(OldUserRole.ADMIN);
 
     if (!reload) throw new Error("reload is not defined");
 

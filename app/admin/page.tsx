@@ -1,12 +1,12 @@
 "use client";
 
 import { admin } from "@/actions/admin";
+import { PermissionGate } from "@/components/auth/permissionGate";
 import ProtectedPageClient from "@/components/auth/protectedPageClient";
-import { RoleGate } from "@/components/auth/roleGate";
 import { FormSuccess } from "@/components/formSuccess";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { OldUserRole } from "@prisma/client";
+import { OldUserRole, PermissionName } from "@prisma/client";
 import { toast } from "sonner";
 
 const AdminPage = () => {
@@ -43,9 +43,14 @@ const AdminPage = () => {
                 </p>
             </CardHeader>
             <CardContent className="space-y-4">
-                <RoleGate allowedRoles={[OldUserRole.ADMIN]} >
+                <PermissionGate
+                    allowedPermissions={[
+                        PermissionName.ADMINISTRATOR
+                    ]}
+                    showMessage
+                >
                     <FormSuccess message="You are allowed to view this content!" />
-                </RoleGate>
+                </PermissionGate>
                 <div className="flex flex-row justify-between items-center rounded-lg border p-3 shadow-md">
                     <p className="text-sm font-medium">
                         Admin-only API Route

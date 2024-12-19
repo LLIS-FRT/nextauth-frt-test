@@ -12,7 +12,7 @@ export const currentUser = async () => {
 export const currentRoles = async () => {
     const session = await auth();
 
-    const roles = session?.user?.roles || [];
+    const roles = session?.user?.oldRoles || [];
 
     return roles;
 }

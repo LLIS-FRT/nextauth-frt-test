@@ -6,7 +6,7 @@ export const SettingsSchema = z.object({
     lastName: z.optional(z.string()),
     isTwoFactorEnabled: z.optional(z.boolean()),
     // An array of the OldUserRole enum
-    roles: z.array(z.nativeEnum(OldUserRole)),
+    oldUserRoles: z.array(z.nativeEnum(OldUserRole)),
     email: z.optional(z.string()),
     password: z.optional(z.string()),
     newPassword: z.optional(z.string()),

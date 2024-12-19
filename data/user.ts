@@ -21,7 +21,7 @@ export const getUserById = async (id: string) => {
                 id
             },
             include: {
-                userRoles: {
+                roles: {
                     include: {
                         permissions: true
                     }

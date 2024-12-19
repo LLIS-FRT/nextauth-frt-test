@@ -106,7 +106,7 @@ model User {
   emailVerified         DateTime?
   image                 String?
   password              String?
-  roles                 OldUserRole[]            @default([USER]) // TODO: Remove
+  oldRoles              OldUserRole[]          @default([USER]) // TODO: Remove
   accounts              Account[] // Relation to Account model (1-to-many)
   isTwoFactorEnabled    Boolean                @default(false)
   onboardingComplete    Boolean                @default(false)
@@ -127,8 +127,8 @@ model User {
 
   lastActiveAt DateTime @default(now())
 
-  userRolesIDs String[] @db.ObjectId
-  userRoles    Role[]   @relation(fields: [userRolesIDs], references: [id]) // Assign multiple roles to a user
+  rolesIDs String[] @db.ObjectId
+  roles    Role[]   @relation(fields: [rolesIDs], references: [id]) // Assign multiple roles to a user
 }
 
 model Account {

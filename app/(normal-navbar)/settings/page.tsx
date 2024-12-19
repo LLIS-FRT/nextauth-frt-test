@@ -28,10 +28,10 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { FormSuccess } from "@/components/formSuccess";
 import { FormError } from "@/components/formError";
 import { MultiSelector, MultiSelectorContent, MultiSelectorInput, MultiSelectorItem, MultiSelectorList, MultiSelectorTrigger } from "@/components/ui/multiSelector";
-import { OldUserRole } from "@prisma/client";
+import { OldUserRole, PermissionName } from "@prisma/client";
 import { Switch } from "@/components/ui/switch";
-import { RoleGate } from "@/components/auth/roleGate";
 import PasswordField from "@/components/auth/PasswordField";
+import { PermissionGate } from "@/components/auth/permissionGate";
 
 const formatRole = (role: OldUserRole) => {
     // Convert the role to a string
@@ -76,7 +76,7 @@ const SettingsPage = () => {
             isTwoFactorEnabled: user?.isTwoFactorEnabled || undefined,
             newPassword: undefined,
             password: undefined,
-            roles: user?.roles || [],
+            oldUserRoles: user?.oldRoles || [],
         },
     });
 
@@ -110,7 +110,7 @@ const SettingsPage = () => {
                 IAM: user.IAM,
                 email: user.email,
                 isTwoFactorEnabled: user.isTwoFactorEnabled,
-                roles: user.roles,
+                roles: user.oldRoles,
             };
 
             // Check if current form values differ from user values
@@ -232,14 +232,15 @@ const SettingsPage = () => {
                                         />
                                     </>
                                 )}
-                                <RoleGate
-                                    allowedRoles={[OldUserRole.ADMIN]}
-                                    requireAll={false}
+                                <PermissionGate
+                                    allowedPermissions={[
+                                        PermissionName.ADMINISTRATOR
+                                    ]}
                                     showMessage
                                 >
                                     <FormField
                                         control={form.control}
-                                        name="roles"
+                                        name="oldUserRoles"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Roles</FormLabel>
@@ -263,7 +264,7 @@ const SettingsPage = () => {
                                             </FormItem>
                                         )}
                                     />
-                                </RoleGate>
+                                </PermissionGate>
                                 {user?.isOAuth === false && (
                                     <FormField
                                         control={form.control}

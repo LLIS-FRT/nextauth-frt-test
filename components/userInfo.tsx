@@ -57,7 +57,7 @@ export const UserInfo = ({
                         Roles
                     </p>
                     <p className="truncate text-xs max-w-[180px] font-mono p-1 bg-slate-100 rounded-md">
-                        {user?.roles?.join(", ")}
+                        {user?.oldRoles?.join(", ")}
                     </p>
                 </div>
                 <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">

@@ -78,7 +78,7 @@ export const GET = protectedRoute(
         const rolesThatCanSeeAllExams: OldUserRole[] = [OldUserRole.ADMIN];
 
         // To access ALL exams user needs to be an admin
-        if (classID === null && !validUser.roles.some(role => rolesThatCanSeeAllExams.includes(role))) {
+        if (classID === null && !validUser.oldRoles.some(role => rolesThatCanSeeAllExams.includes(role))) {
             return new NextResponse("No class with the name '" + studentClass + "' found", { status: 404 });
         }
 
