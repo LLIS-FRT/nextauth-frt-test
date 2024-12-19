@@ -3,7 +3,7 @@ import { IncomingForm, File } from 'formidable';
 import fs from 'fs';
 import path from 'path';
 import { protectedRoute } from '@/lib/auth';
-import { UserRole } from '@prisma/client';
+import { PermissionName } from '@prisma/client';
 
 const upload = (req: NextRequest) => {
     // Access the raw Node.js request object.
@@ -76,6 +76,5 @@ export const POST = protectedRoute(async function POST(req) {
 
     return new NextResponse("Not implemented yet", { status: 200 });
 }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
-    requireAll: false // Set to true if you need all roles to be present
+    requiredPermissions: [PermissionName.UPLOAD_FILE] 
 });

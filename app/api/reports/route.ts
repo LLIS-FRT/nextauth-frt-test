@@ -1,17 +1,7 @@
 import { currentUser, protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-
-import { Report as ReportType, UserRole } from "@prisma/client";
-
-// GET all Reports
-export const GET = protectedRoute(async function GET(req) {
-    const reports = await db.report.findMany();
-    return new NextResponse(JSON.stringify(reports), { status: 200 });
-}, {
-    allowedRoles: [UserRole.ADMIN],
-    requireAll: false // Set to true if you need all roles to be present
-});
+import { PermissionName, Report as ReportType, UserRole_ } from "@prisma/client";
 
 const generateMissionNumber = async (): Promise<ReportType['missionNumber']> => {
     const date = new Date();
@@ -46,38 +36,47 @@ const generateMissionNumber = async (): Promise<ReportType['missionNumber']> => 
     return Number(missionNumber);
 }
 
+// GET all Reports
+export const GET = protectedRoute(
+    async function GET(req) {
+        const reports = await db.report.findMany();
+        return new NextResponse(JSON.stringify(reports), { status: 200 });
+    }, {
+    requiredPermissions: [PermissionName.VIEW_ANY_REPORT] 
+});
+
 // POST new Report
-export const POST = protectedRoute(async function POST(req) {
-    const user = await currentUser();
-    const { report }: { report: ReportType } = await req.json();
+export const POST = protectedRoute(
+    async function POST(req) {
+        const user = await currentUser();
+        const { report }: { report: ReportType } = await req.json();
 
-    if (!user) return new NextResponse("Unauthorized", { status: 401 });
-    const missionNumber = await generateMissionNumber();
+        if (!user) return new NextResponse("Unauthorized", { status: 401 });
+        const missionNumber = await generateMissionNumber();
 
-    const firstRespondersJson = JSON.stringify(report.firstResponders);
-    const samplerSchemaJson = JSON.stringify(report.samplerSchema);
-    const abcdeSchemaJson = JSON.stringify(report.abcdeSchema);
-    const patientInfoJson = JSON.stringify(report.patientInfo);
-    const missionInfoJson = JSON.stringify(report.missionInfo);
+        const firstRespondersJson = JSON.stringify(report.firstResponders);
+        const samplerSchemaJson = JSON.stringify(report.samplerSchema);
+        const abcdeSchemaJson = JSON.stringify(report.abcdeSchema);
+        const patientInfoJson = JSON.stringify(report.patientInfo);
+        const missionInfoJson = JSON.stringify(report.missionInfo);
 
-    if(!missionNumber) return new NextResponse("Invalid mission number", { status: 400 });
+        if (!missionNumber) return new NextResponse("Invalid mission number", { status: 400 });
 
-    const newReport = await db.report.create({
-        data: {
-            missionNumber,
-            createdById: user.id,
-            archived: report.archived,
-            resolved: report.resolved,
-            firstResponders: firstRespondersJson,
-            samplerSchema: samplerSchemaJson,
-            abcdeSchema: abcdeSchemaJson,
-            patientInfo: patientInfoJson,
-            missionInfo: missionInfoJson,
-        }
-    });
+        const newReport = await db.report.create({
+            data: {
+                missionNumber,
+                createdById: user.id,
+                archived: report.archived,
+                resolved: report.resolved,
+                firstResponders: firstRespondersJson,
+                samplerSchema: samplerSchemaJson,
+                abcdeSchema: abcdeSchemaJson,
+                patientInfo: patientInfoJson,
+                missionInfo: missionInfoJson,
+            }
+        });
 
-    return new NextResponse(JSON.stringify({ report: newReport }), { status: 200 });
-}, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
-    requireAll: false // Set to true if you need all roles to be present
+        return new NextResponse(JSON.stringify({ report: newReport }), { status: 200 });
+    }, {
+    requiredPermissions: [PermissionName.CREATE_OWN_REPORT]
 });

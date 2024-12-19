@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { UserButton } from "@/components/auth/userButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NavbarButton } from "./navbarBtn";
-import { UserRole } from "@prisma/client";
+import { PermissionName, UserRole_ } from "@prisma/client";
 import { RoleGate } from "@/components/auth/roleGate";
 import { LoginButton } from "@/components/auth/loginButton";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,13 @@ import { FiMenu, FiX } from "react-icons/fi";
 import gsap from "gsap"; // Import GSAP
 import { LogoutButton } from "@/components/auth/logoutButton";
 import Link from "next/link";
+import { PermissionGate } from "./auth/permissionGate";
 
 type Routes = {
     href: string;
     label: string;
     requireAll?: boolean;
-    roles?: UserRole[];
+    permissions?: PermissionName[];
     isAuthenticated?: boolean;
 };
 
@@ -87,9 +88,9 @@ export const Navbar = ({ routes }: { routes: Routes[] }) => {
                     {routes.map((item, index) => {
                         if (item.isAuthenticated) {
                             return (
-                                <RoleGate
+                                <PermissionGate
                                     key={index}
-                                    allowedRoles={item.roles || []}
+                                    allowedPermissions={item.permissions || []}
                                     requireAll={item.requireAll}
                                     showMessage={false}
                                 >
@@ -97,7 +98,7 @@ export const Navbar = ({ routes }: { routes: Routes[] }) => {
                                         href={item.href}
                                         label={item.label}
                                     />
-                                </RoleGate>
+                                </PermissionGate>
                             );
                         } else {
                             return (
@@ -141,9 +142,9 @@ export const Navbar = ({ routes }: { routes: Routes[] }) => {
                             {routes.map((item, index) => {
                                 if (item.isAuthenticated) {
                                     return (
-                                        <RoleGate
+                                        <PermissionGate
                                             key={index}
-                                            allowedRoles={item.roles || []}
+                                            allowedPermissions={item.permissions || []}
                                             requireAll={item.requireAll}
                                             showMessage={false}
                                         >
@@ -153,7 +154,7 @@ export const Navbar = ({ routes }: { routes: Routes[] }) => {
                                                 className="text-left w-full"
                                                 onClick={toggleMenu} // Close menu on click
                                             />
-                                        </RoleGate>
+                                        </PermissionGate>
                                     );
                                 } else {
                                     return (

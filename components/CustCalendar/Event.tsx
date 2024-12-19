@@ -25,11 +25,16 @@ const Event: React.FC<EventProps> = ({
     const style = eventStyle(color, texture);
     const isExam = event.type === 'exam';
 
+    const isSelectable = event.selectable;
+
+    console.log(event);
+
     return (
         <div
             className={cn(
                 'absolute p-1 text-white text-xs border-r border-l border-black cursor-pointer border rounded',
-                isExam && 'cursor-not-allowed'
+                isExam && 'cursor-not-allowed',
+                !isSelectable && 'cursor-not-allowed'
             )}
             style={{
                 ...style,
@@ -40,7 +45,7 @@ const Event: React.FC<EventProps> = ({
                 zIndex: index + 1,
                 overflow: 'hidden',
             }}
-            onClick={() => handleEventClick(event, event.type)}
+            onClick={!isSelectable ? undefined : () => handleEventClick(event, event.type)}
         >
             <div
                 className="bg-white p-1 rounded shadow text-center overflow-ellipsis"

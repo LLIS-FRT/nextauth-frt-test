@@ -7,7 +7,7 @@
 //   provider = "prisma-client-js"
 // }
 
-// enum UserRole {
+// enum UserRole_ {
 //   USER // Any user that has an account
 //   MEMBER // A member of the First Responder Team
 //   ADMIN // A member with full access
@@ -20,7 +20,7 @@
 //   emailVerified         DateTime?
 //   image                 String?
 //   password              String?
-//   roles                 UserRole[]             @default([USER])
+//   roles                 UserRole_[]             @default([USER])
 //   accounts              Account[]
 //   isTwoFactorEnabled    Boolean                @default(false)
 //   twoFactorConfirmation TwoFactorConfirmation?
@@ -113,10 +113,84 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum UserRole {
+enum UserRole_ {
   USER // Any user that has an account
   MEMBER // A member of the First Responder Team
   ADMIN // A member with full access
+}
+
+enum PermissionName {
+  ADMINISTRATOR // Full access
+
+  // Availabilities
+  CREATE_OWN_AVAILABILITY // Create availability for the current user
+  VIEW_OWN_AVAILABILITY // View only the availabilities of the current user
+  UPDATE_OWN_AVAILABILITY // Update only the availabilities of the current user
+  DELETE_OWN_AVAILABILITY // Delete only the availabilities of the current user
+
+  CREATE_ANY_AVAILABILITY // Create availabilities for other users
+  VIEW_ANY_AVAILABILITY // View availabilities of any user
+  UPDATE_ANY_AVAILABILITY // Update availabilities of any user
+  DELETE_ANY_AVAILABILITY // Delete availabilities of any user
+
+  // Reports
+  CREATE_OWN_REPORT // Create reports for the current user
+  CREATE_ANY_REPORT // Create any reports
+
+  VIEW_OWN_REPORT // View reports the current user is part of
+  UPDATE_OWN_REPORT // Update reports the current user is part of
+
+  VIEW_ANY_REPORT // View reports of any user
+  UPDATE_ANY_REPORT // Update reports of any user
+  DELETE_ANY_REPORT // Delete reports of any user
+
+  // Shifts
+  CREATE_OWN_SHIFT // Create shifts for the current user
+  VIEW_OWN_SHIFT // View shifts the current user is part of
+
+  DELETE_ANY_SHIFT // Delete shifts of any user
+  VIEW_ANY_SHIFT // View shifts of any user
+  CREATE_ANY_SHIFT // Create shifts for other users
+
+  // Teams
+  VIEW_OWN_TEAM // View teams the current user is part of
+
+  CREATE_TEAM // Create new teams
+  VIEW_ANY_TEAM // View any team
+  UPDATE_ANY_TEAM // Update any team
+  DELETE_ANY_TEAM // Delete any team
+
+  // Exams
+  VIEW_ANY_EXAM // View all exams (including for other users)
+  UPDATE_OWN_EXAM // Update exams related to the current user
+
+  UPDATE_ANY_EXAM // Update any exam
+
+  // Profiles
+  VIEW_OWN_PROFILE // View only the profile of the current user
+  VIEW_ANY_PROFILE // View profile of any user
+
+  // Files
+  UPLOAD_FILE // Upload files
+}
+
+model Permission {
+  id   String         @id @default(auto()) @map("_id") @db.ObjectId
+  name PermissionName @unique
+
+  userRolesIds String[]   @db.ObjectId
+  userRoles    UserRole[] @relation(fields: [userRolesIds], references: [id])
+}
+
+model UserRole {
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
+
+  permissionIds String[]     @db.ObjectId
+  permissions   Permission[] @relation(fields: [permissionIds], references: [id])
+
+  userIds String[] @db.ObjectId
+  Users   User[]   @relation(fields: [userIds], references: [id])
 }
 
 model User {
@@ -132,7 +206,7 @@ model User {
   emailVerified         DateTime?
   image                 String?
   password              String?
-  roles                 UserRole[]             @default([USER])
+  roles                 UserRole_[]            @default([USER])
   accounts              Account[] // Relation to Account model (1-to-many)
   isTwoFactorEnabled    Boolean                @default(false)
   onboardingComplete    Boolean                @default(false)
@@ -153,18 +227,8 @@ model User {
 
   lastActiveAt DateTime @default(now())
 
-  Sessions Session[]
-}
-
-model Session {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  lastActiveAt DateTime @default(now())
-
-  User   User?   @relation(fields: [userId], references: [id])
-  userId String? @db.ObjectId
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  UserRoleIds String[]   @db.ObjectId
+  UserRoles   UserRole[] @relation(fields: [UserRoleIds], references: [id])
 }
 
 model Account {

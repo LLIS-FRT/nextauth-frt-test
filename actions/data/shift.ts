@@ -1,11 +1,22 @@
 "use server";
 
-import { currentUser, protectedServerAction } from "@/lib/auth";
+import { currentUser, permissionsChecker, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendShiftAddedEmail } from "@/lib/mail";
-import { Shift, UserRole } from "@prisma/client";
+import { PermissionName, Shift, UserRole_ } from "@prisma/client";
 
-export type LimitedShift = Pick<Shift, "startDate" | "endDate" | "id">
+export type LimitedShift = {
+    startDate: Date;
+    endDate: Date;
+    id: string;
+    userIds: string[];
+    Team: {
+        id: string;
+        minUsers: number;
+        maxUsers: number;
+        possiblePositions: string[];
+    } | null;
+}
 
 export interface GetShiftsResponse {
     allShifts: boolean;
@@ -25,50 +36,56 @@ export const getShifts = protectedServerAction(
         if (!user) throw new Error("User not found");
         const userId = user.id;
 
-        const validUser = await db.user.findUnique({ where: { id: userId }, select: { roles: true } });
 
-        if (!validUser) throw new Error("User not found");
-        const isAdmin = validUser.roles.includes(UserRole.ADMIN);
+        const canViewAny = await permissionsChecker([PermissionName.VIEW_ANY_SHIFT]);
 
         const select = {
             startDate: true,
             endDate: true,
             id: true,
+            userIds: true,
+            Team: {
+                select: {
+                    id: true,
+                    minUsers: true,
+                    maxUsers: true,
+                    possiblePositions: true,
+                }
+            }
         };
 
         if (!id) {
             const shifts = await db.shift.findMany({
-                where: isAdmin ? {} : { userIds: { has: userId } },
-                select
+                where: canViewAny ? {} : { userIds: { has: userId } },
+                select,
             });
 
-            return { allShifts: isAdmin, shifts };
+            return { allShifts: canViewAny, shifts };
         } else if (Array.isArray(id)) {
             const shifts = await db.shift.findMany({
                 where: {
                     id: { in: id },
-                    userIds: isAdmin ? {} : { has: userId }
+                    userIds: canViewAny ? {} : { has: userId }
                 },
                 select
             });
 
-            return { allShifts: isAdmin, shifts };
+            return { allShifts: canViewAny, shifts };
         } else if (typeof id === "string") {
             const shift = await db.shift.findUniqueOrThrow({
                 where: {
                     id,
-                    userIds: isAdmin ? {} : { has: userId }
+                    userIds: canViewAny ? {} : { has: userId }
                 },
                 select
             });
 
-            return { allShifts: isAdmin, shifts: [shift] };
+            return { allShifts: canViewAny, shifts: [shift] };
         } else {
             throw new Error("Invalid id");
         }
     }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
-    requireAll: false // Set to true if you need all roles to be present
+    requiredPermissions: [PermissionName.VIEW_OWN_SHIFT]
 });
 
 export const createShift = protectedServerAction(
@@ -76,11 +93,8 @@ export const createShift = protectedServerAction(
         const currentUser_ = await currentUser();
         if (!currentUser_) throw new Error("User not found");
 
-        const roles = currentUser_.roles;
-        if (!roles) throw new Error("User not found");
-
-        const isAdmin = roles.includes(UserRole.ADMIN);
-        if (!isAdmin) throw new Error("Unauthorized");
+        const canCreateAny = await permissionsChecker([PermissionName.CREATE_ANY_SHIFT]);
+        if (!canCreateAny) throw new Error("Unauthorized");
 
         const { startDate, endDate, userIds, createdByuserId, teamId, userPositions } = shift;
         if (!startDate || !endDate || !userIds || !createdByuserId || !teamId || !userPositions) {
@@ -153,20 +167,13 @@ export const createShift = protectedServerAction(
 
         return newShift;
     }, {
-    allowedRoles: [UserRole.ADMIN],
-    requireAll: false
+    requiredPermissions: [PermissionName.CREATE_OWN_SHIFT]
 })
 
 export const deleteShift = protectedServerAction(
     async (id: string) => {
         const user = await currentUser();
         if (!user) throw new Error("User not found");
-
-        const roles = user.roles;
-        if (!roles) throw new Error("User not found");
-
-        const isAdmin = roles.includes(UserRole.ADMIN);
-        if (!isAdmin) throw new Error("Unauthorized");
 
         const shift = await db.shift.findUnique({
             where: { id },
@@ -190,6 +197,5 @@ export const deleteShift = protectedServerAction(
         // Delete the shift
         await db.shift.delete({ where: { id } });
     }, {
-    allowedRoles: [UserRole.ADMIN],
-    requireAll: false
+    requiredPermissions: [PermissionName.DELETE_ANY_SHIFT]
 })

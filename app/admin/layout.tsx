@@ -1,6 +1,6 @@
 import ProtectedPageServer from "@/components/auth/protectedPageServer";
 import { Navbar } from "@/components/navbar";
-import { UserRole } from "@prisma/client";
+import { UserRole_ } from "@prisma/client";
 
 interface ProtectedLayoutProps {
     children: React.ReactNode;
@@ -11,13 +11,13 @@ const routes = [
     {
         href: "/admin",
         label: "Admin",
-        roles: [UserRole.ADMIN],
+        roles: [UserRole_.ADMIN],
         isAuthenticated: true,
     },
     {
         href: "/admin/shift-manager",
         label: "Shift Manager",
-        roles: [UserRole.ADMIN],
+        roles: [UserRole_.ADMIN],
         isAuthenticated: true,
     }
 ];
@@ -42,4 +42,4 @@ const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
     );
 };
 
-export default ProtectedPageServer(ProtectedLayout, { allowedRoles: [UserRole.ADMIN], requireAll: false })
+export default ProtectedPageServer(ProtectedLayout, { allowedRoles: [UserRole_.ADMIN], requireAll: false })

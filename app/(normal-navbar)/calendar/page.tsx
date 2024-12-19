@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { RoleGate } from "@/components/auth/roleGate";
 import CustomCalendar from "@/components/CustCalendar/Calendar";
 import { AvailabilityEvent, EventBgColor, EventType, ExamEvent, OverlapEvent, ShiftEvent } from "@/components/CustCalendar/types";
-import { Availability, UserRole } from "@prisma/client";
+import { Availability, UserRole_ } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import moment from 'moment';
@@ -16,8 +16,8 @@ import { getExams } from '@/actions/data/exams';
 import { getShifts } from '@/actions/data/shift';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createAvailability, deleteAvailability, getAvailabilitiesByUser, updateAvailability } from '@/actions/data/availability';
-import { timeunits } from '@/constants';
 import { getHolidays } from '@/actions/data/holidays';
+import { combineAdjacentSlots, ShiftToEvent } from '@/utils/calendar';
 
 interface EventValidationError {
   startDate: Date;
@@ -75,6 +75,10 @@ const CalendarPage = () => {
           id,
           title: `Availability`,
           type: "availability",
+          selectable: true,
+          extendedProps: {
+            availability
+          }
         }
       })
 
@@ -99,25 +103,10 @@ const CalendarPage = () => {
     staleTime: 1000 * 60 * 5,
     enabled: !!id,
     queryFn: async () => {
-      if (!id) return;
+      if (!id || isIAM) return;
       const { shifts } = await getShifts(undefined);
 
-      const shiftEvents: ShiftEvent[] = shifts.map((shift) => {
-        const { startDate, endDate, id } = shift;
-
-        return {
-          backgroundColor: EventBgColor.coveredWithUser,
-          endDate: new Date(endDate),
-          startDate: new Date(startDate),
-          shiftType: 'coveredWithUser',
-          type: "shift",
-          title: `Shift`,
-          extendedProps: {
-            shift: shift
-          },
-          id
-        }
-      })
+      const shiftEvents = ShiftToEvent(shifts, id);
 
       setShifts(shiftEvents);
       return shifts;
@@ -163,6 +152,7 @@ const CalendarPage = () => {
           id: `exam-${uuidv4()}`,
           title: `Exam: ${exam.name}`,
           type: "exam",
+          selectable: true,
           extendedProps: {
             exam,
           }
@@ -227,9 +217,7 @@ const CalendarPage = () => {
       return;
     }
 
-    const sortedSlots = sortSlots(slots);
-    const combinedSlots = combineSlotsWithBreaks([...sortedSlots], errors);
-
+    const combinedSlots = combineAdjacentSlots([...slots], true);
     const dbAvailabilities: Availability[] = [];
 
     combinedSlots.forEach(slot => {
@@ -254,7 +242,7 @@ const CalendarPage = () => {
       const availabilitiesToBeDeleted: string[] = []; // Existing availabilities to be deleted
 
       // Helper function to check if two availabilities can be merged
-      const canCombine = (avail1: Availability, avail2: EventType) => {
+      const canCombine = (avail1: Availability, avail2: EventType): Boolean => {
         // Combine if availabilities overlap or are adjacent
         return (
           new Date(avail1.endDate) >= new Date(avail2.startDate) && // End date of avail1 is after start date of avail2
@@ -265,65 +253,79 @@ const CalendarPage = () => {
       };
 
       // Merge two availabilities into one
-      const mergeAvailabilities = (avail1: Availability, avail2: EventType) => {
+      const mergeAvailabilities = (avail1: Availability, avail2: EventType): Availability => {
         return {
           startDate: new Date(Math.min(new Date(avail1.startDate).getTime(), new Date(avail2.startDate).getTime())),
           endDate: new Date(Math.max(new Date(avail1.endDate).getTime(), new Date(avail2.endDate).getTime())),
           userId, // Assuming both availabilities belong to the same user
-          id: avail2.id // Keep the existing availability ID for updating
+          id: avail2.id, // Keep the existing availability ID for updating
+          confirmed: false,
+          confirmedAt: null,
+          confirmedByuserId: null,
         };
       };
 
-      // TODO: BIG ISSUE, deletes all availabilities when creating a new one
-
-      // Check and combine new availabilities with existing ones
       // Check and combine new availabilities with existing ones
       dbAvailabilities.forEach(newAvailability => {
-        let mergedAvailability = newAvailability;
+        let mergedAvailability: Availability = newAvailability;
+        const mergedWith = []; // Track merged availabilities
         let hasMerged = false;
+        let foundMerge;
 
-        // Keep merging with existing availabilities until no more can be merged
-        let i = 0;
-        while (i < existingAvailabilities.length) {
-          const existingAvailability = existingAvailabilities[i];
+        // Repeatedly try to merge until no more merges can be found
+        do {
+          foundMerge = false;
 
-          if (canCombine(mergedAvailability, existingAvailability)) {
-            // Merge the availabilities
-            mergedAvailability = mergeAvailabilities(mergedAvailability, existingAvailability);
+          for (let i = 0; i < existingAvailabilities.length; i++) {
+            const existingAvailability = existingAvailabilities[i];
 
-            // Remove the existing availability from the list
-            existingAvailabilities.splice(i, 1);
-            hasMerged = true;
+            if (canCombine(mergedAvailability, existingAvailability)) {
+              // Merge the availabilities
+              mergedAvailability = mergeAvailabilities(mergedAvailability, existingAvailability);
 
-            // Reset index to recheck all existing availabilities
-            i = 0;
-          } else {
-            i++; // Only increment if no merge
-          }
-        }
+              // Add the merged availability to the list of mergedWith
+              mergedWith.push(existingAvailability);
 
-        // After finishing all merges, decide whether to update or create
-        if (hasMerged) {
-          availabilitiesToBeUpdated.push(mergedAvailability); // Push fully merged availability
+              // Remove the merged availability from the list
+              existingAvailabilities.splice(i, 1);
 
-          // Check for deletions
-          existingAvailabilities.forEach(existing => {
-            const fullyCovers =
-              new Date(mergedAvailability.startDate) <= new Date(existing.startDate) &&
-              new Date(mergedAvailability.endDate) >= new Date(existing.endDate);
-
-            // Only delete existing availabilities that are fully covered and are not the one being updated
-            if (fullyCovers && existing.id !== mergedAvailability.id) {
-              availabilitiesToBeDeleted.push(existing.id); // Mark for deletion
+              // Set flags and break to re-check from the beginning
+              foundMerge = true;
+              hasMerged = true;
+              break;
             }
-          });
+          }
+        } while (foundMerge);
+
+        // After all merges are done, add the mergedAvailability back to existingAvailabilities for future merges
+        if (hasMerged) {
+          existingAvailabilities.push({
+            backgroundColor: EventBgColor.Availability,
+            endDate: mergedAvailability.endDate,
+            id: mergedAvailability.id,
+            startDate: mergedAvailability.startDate,
+            title: 'Availability',
+            type: 'availability',
+            selectable: true,
+            extendedProps: {
+              availability: mergedAvailability
+            }
+          });  // Add latest merged result back for future merges
+
+          availabilitiesToBeUpdated.push(mergedAvailability);
+
+          // Check if more than one availability was merged
+          if (mergedWith.length > 1) {
+            const toDelete = mergedWith.slice(0, -1).map(availability => availability.id);
+            availabilitiesToBeDeleted.push(...toDelete);
+          }
         } else {
-          availabilitiesToBeCreated.push(newAvailability); // If no merge, create new one
+          availabilitiesToBeCreated.push(newAvailability);
         }
       });
 
-      console.log({ availabilitiesToBeCreated, availabilitiesToBeUpdated, availabilitiesToBeDeleted });
 
+      // Create completely new availabilities
       for (const availability of availabilitiesToBeCreated) {
         server_createAvailability({
           endDate: availability.endDate,
@@ -332,6 +334,7 @@ const CalendarPage = () => {
         });
       }
 
+      // Update existing availabilities
       for (const availability of availabilitiesToBeUpdated) {
         server_updateAvailability({
           id: availability.id,
@@ -343,110 +346,14 @@ const CalendarPage = () => {
         });
       }
 
+      // Delete existing availabilities
       for (const availabilityId of availabilitiesToBeDeleted) {
-        // Assuming you have a function to delete availabilities
         server_deleteAvailability(availabilityId);
       }
     }
 
     displayErrors(errors);
     refetchAvailabilitiesByUser();
-  };
-
-  // Function to identify breaks based on timeunits
-  const identifyBreaks = () => {
-    const breaks: { startTime: string; endTime: string; }[] = [];
-
-    for (let i = 0; i < timeunits.length - 1; i++) {
-      const currentEnd = timeunits[i].endTime;
-      const nextStart = timeunits[i + 1].startTime;
-
-      // Convert 900, 950, 1300 to 09:00, 09:50, 13:00
-      const formatTime = (time: number) => {
-        const hours = Math.floor(time / 100);
-        const minutes = time % 100;
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-      }
-
-      const formattedEnd = formatTime(currentEnd);
-      const formattedStart = formatTime(nextStart);
-
-      // Check if there is a break
-      if (currentEnd < nextStart) {
-        breaks.push({ startTime: formattedEnd, endTime: formattedStart });
-      }
-    }
-
-    return breaks;
-  };
-
-  // Function to sort slots by start date
-  const sortSlots = (slots: { startDate: Date; endDate: Date; }[]) => {
-    return [...slots].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
-  };
-
-  // Function to add breaks to slots
-  const combineSlotsWithBreaks = (
-    slots: { startDate: Date; endDate: Date }[],
-    errors: EventValidationError[]
-  ) => {
-    const combinedSlots: { startDate: Date; endDate: Date }[] = [];
-    const breaks: { startTime: string; endTime: string }[] = identifyBreaks(); // Assumes this is pre-implemented and works 100%
-
-    if (slots.length === 0) return combinedSlots;
-
-    let currentStartDate = slots[0].startDate;
-    let currentEndDate = slots[0].endDate;
-
-    const formatTime = (time: string, slotDate: Date) => {
-      const year = slotDate.getFullYear();
-      const month = slotDate.getMonth();
-      const day = slotDate.getDate();
-      const [hours, minutes] = time.split(':');
-      return new Date(year, month, day, parseInt(hours), parseInt(minutes));
-    }
-
-    const isSlotInBreak = (endDate: Date) => {
-      const isBreak = breaks.some(breakTime => {
-        const breakStart = formatTime(breakTime.startTime, endDate);
-        const breakStartTime = breakStart.getTime();
-        const endDateTime = endDate.getTime();
-
-        return breakStartTime == endDateTime;
-      });
-
-      return isBreak;
-    }
-
-    for (let i = 0; i < slots.length; i++) {
-      const slot = slots[i];
-
-      // If the current slot overlaps with or touches the previous one, combine them
-      if (slot.startDate <= currentEndDate) {
-        // Extend the end of the combined slot if the new slot ends later
-        currentEndDate = new Date(Math.max(currentEndDate.getTime(), slot.endDate.getTime()));
-      } else {
-        // Push the current combined slot before starting a new one
-        if (slots.length > 1) combinedSlots.push({ startDate: currentStartDate, endDate: currentEndDate });
-
-        // Start a new combined slot
-        currentStartDate = slot.startDate;
-        currentEndDate = slot.endDate;
-      }
-
-      // Check if the slot's end is at the start of a break and include the break
-      if (isSlotInBreak(currentEndDate)) {
-        const breakInfo = breaks.find(b => formatTime(b.startTime, currentEndDate).getTime() === currentEndDate.getTime());
-        if (breakInfo) {
-          currentEndDate = formatTime(breakInfo.endTime, currentEndDate); // Extend the end to cover the break
-        }
-      }
-    }
-
-    // Push the last combined slot
-    combinedSlots.push({ startDate: currentStartDate, endDate: currentEndDate });
-
-    return combinedSlots;
   };
 
   // Function to convert a slot to an event
@@ -458,11 +365,14 @@ const CalendarPage = () => {
       });
       return null;
     } else {
+      const uuid = uuidv4();
+      if (!id) throw new Error('User ID not found');
       return {
         backgroundColor: EventBgColor.Availability,
         endDate: slot.endDate,
         startDate: slot.startDate,
-        id: uuidv4(),
+        id: uuid,
+        selectable: true,
         title: "Availability",
         type: "availability",
       };
@@ -493,8 +403,8 @@ const CalendarPage = () => {
     <div className="bg-white h-full w-full">
       <RoleGate
         allowedRoles={[
-          UserRole.ADMIN,
-          UserRole.MEMBER,
+          UserRole_.ADMIN,
+          UserRole_.MEMBER,
         ]}
       >
         <div className="h-full w-full items-center bg-white justify-center no-scrollbar">

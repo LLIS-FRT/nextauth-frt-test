@@ -1,4 +1,6 @@
-import { Holiday } from "webuntis";
+import { LimitedAvailability } from "@/actions/data/availability";
+import { LimitedShift } from "@/actions/data/shift";
+import { Exam, Holiday } from "webuntis";
 
 export interface TimeUnit {
     name: string; // Name or identifier for the time unit
@@ -26,25 +28,32 @@ export interface BaseEvent {
     startDate: Date;
     endDate: Date;
     type: 'exam' | 'shift' | 'availability' | 'overlap'; // Event type
-    extendedProps?: { [key: string]: any };
+    selectable: boolean;
 }
 
 export interface ShiftEvent extends BaseEvent {
     type: 'shift';
     shiftType: 'coveredWithUser' | 'coveredWithoutUser' | 'notCoveredWithUser' | 'notCoveredWithoutUser'
     | 'minUsersWithUser' | 'minUsersWithoutUser' | 'lessThanMinUsersWithUser' | 'lessThanMinUsersWithoutUser';
+    extendedProps: { shift: LimitedShift };
 }
 
 export interface ExamEvent extends BaseEvent {
     type: 'exam';
+    extendedProps: { exam: Exam; };
 }
 
 export interface AvailabilityEvent extends BaseEvent {
     type: 'availability';
+    extendedProps?: { availability: LimitedAvailability};
 }
 
 export interface OverlapEvent extends BaseEvent {
     type: 'overlap';
+    extendedProps: {
+        availabilityIds: string[];
+        availabilities: LimitedAvailability[];
+    };
 }
 
 // Union type for all event types
@@ -95,7 +104,7 @@ export interface TimeSlotProps {
 export interface TimeSlotsProps {
     selectedSlots: { slot: TimeUnit; day: Date }[];
     allPossibleTimeUnits: Slot[];
-    day: Date; 
+    day: Date;
     setSelectedSlots: React.Dispatch<React.SetStateAction<{ slot: TimeUnit; day: Date }[]>>
     calendarRef: React.RefObject<HTMLDivElement>;
     events?: EventType[];

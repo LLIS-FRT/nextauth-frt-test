@@ -1,40 +1,62 @@
 "use client";
 
-import { UserRole } from '@prisma/client';
+import { UserRole_ } from '@prisma/client';
 import { useEffect, useState } from 'react';
 import moment from 'moment'; // Import if you still plan on using moment
-import { EventBgColor, EventType, OverlapEvent } from '@/components/CustCalendar/types';
+import { EventBgColor, EventType, OverlapEvent, ShiftEvent } from '@/components/CustCalendar/types';
 import Calendar from '@/components/CustCalendar/Calendar';
 import ProtectedPageClient from '@/components/auth/protectedPageClient';
 import { OverlapModal } from '@/components/modals/overlapModal';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useQuery } from '@tanstack/react-query';
 import { getAvailabilities, LimitedAvailability } from '@/actions/data/availability';
+import { combineAdjacentSlots, ShiftToEvent } from '@/utils/calendar';
+import { getShifts, LimitedShift } from '@/actions/data/shift';
+
+interface EventValidationError {
+  startDate: Date;
+  endDate: Date;
+}
+
+interface CreateAvailabilityObj {
+  startDate: Date;
+  endDate: Date;
+  userId: string;
+}
+
+interface UpdateAvailabilityObj {
+  startDate: Date;
+  endDate: Date;
+  userId: string;
+  id: string;
+}
 
 const ShiftManagerPage = () => {
-  const [availabilities, setAvailabilities] = useState<LimitedAvailability[]>([]);
+  const [shiftEvents, setShiftEvents] = useState<EventType[]>([]);
+  const [overlapEvents, setOverlapEvents] = useState<EventType[]>([]);
   const [calEvents, setCalEvents] = useState<EventType[]>([]);
 
   const [overlapModalOpen, setOverlapModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<OverlapEvent | null>(null);
 
   const user = useCurrentUser();
+  const userID = user?.id;
 
-  const { isLoading: loadingAvailabilities, refetch: refetchAvailabilities } = useQuery({
+  const { isLoading: loadingAvailabilities, refetch: refetchAvailabilities, data: availabilities } = useQuery({
     queryKey: ["availabilities", "all"],
     staleTime: 1000 * 60 * 5,
-    queryFn: async () => {
-      const res = await getAvailabilities(undefined);
-      const { availabilities } = res;
+    queryFn: async () => (await getAvailabilities(undefined)).availabilities,
+  })
 
-      setAvailabilities(availabilities);
-      return availabilities;
-    },
+  const { isLoading: loadingShifts, refetch: refetchShifts, data: shifts } = useQuery({
+    queryKey: ["shifts", "all"],
+    staleTime: 1000 * 60 * 5,
+    queryFn: async () => (await getShifts(undefined)).shifts,
   })
 
   useEffect(() => {
     // Determine overlaps after availabilities are loaded
-    const overlaps = getOverlapAvailabilities(availabilities);
+    const overlaps = getOverlapAvailabilities(availabilities || [], shifts || []);
 
     // Remove duplicate events
     const uniqueEvents = new Map();
@@ -44,10 +66,23 @@ const ShiftManagerPage = () => {
         uniqueEvents.set(key, event);
       }
     });
-    const newEvents = Array.from(uniqueEvents.values());
+    const newEvents: EventType[] = Array.from(uniqueEvents.values());
+    setOverlapEvents(newEvents);
+  }, [availabilities, shifts]);
 
-    setCalEvents(newEvents);
-  }, [availabilities]);
+  useEffect(() => {
+    // Convert shifts to calendar events
+    if (!shifts) return;
+    if (!userID) return;
+    const shiftEvents = ShiftToEvent(shifts, userID);
+
+    setShiftEvents(shiftEvents);
+  }, [shifts, userID]);
+
+  useEffect(() => {
+    const combinedEvents = [...overlapEvents, ...shiftEvents];
+    setCalEvents(combinedEvents);
+  }, [overlapEvents, shiftEvents]);
 
   if (loadingAvailabilities) return <div>Loading...</div>
 
@@ -56,8 +91,9 @@ const ShiftManagerPage = () => {
       <div className="mt-2">
         <div className="h-full w-full items-center bg-white justify-center no-scrollbar">
           <Calendar
-            onValidate={(slots: { startDate: Date; endDate: Date; }[]) => {
-              // Handle validation logic
+            onValidate={(slots) => {
+              const combinedSlots = combineAdjacentSlots([...slots], false);
+
             }}
             handleEventClick={(event: EventType, type: EventType['type']) => {
               switch (type) {
@@ -68,7 +104,7 @@ const ShiftManagerPage = () => {
               }
             }}
             events={calEvents}
-            selectable={false}
+            selectable={true}
             showlegend={false}
           />
           <OverlapModal modalOpen={overlapModalOpen} setModalOpen={setOverlapModalOpen} selectedEvent={selectedEvent} currentUser={user} />
@@ -78,9 +114,9 @@ const ShiftManagerPage = () => {
   );
 }
 
-export default ProtectedPageClient(ShiftManagerPage, { allowedRoles: [UserRole.ADMIN], requireAll: false });
+export default ProtectedPageClient(ShiftManagerPage, { allowedRoles: [UserRole_.ADMIN], requireAll: false });
 
-const getOverlapAvailabilities = (availabilities: LimitedAvailability[]): EventType[] => {
+const getOverlapAvailabilities = (availabilities: LimitedAvailability[], shifts: LimitedShift[]): EventType[] => {
   const overlaps: EventType[] = [];
 
   if (availabilities.length < 2) return overlaps;
@@ -112,10 +148,10 @@ const getOverlapAvailabilities = (availabilities: LimitedAvailability[]): EventT
         overlapStart >= otherStart && overlapEnd <= otherEnd) {
 
         // Check if this overlap already exists
-        let existingOverlap = overlaps.find(overlap =>
+        let existingOverlap: OverlapEvent | undefined = overlaps.find(overlap =>
           overlap.startDate.getTime() === overlapStart.getTime() &&
           overlap.endDate.getTime() === overlapEnd.getTime()
-        );
+        ) as OverlapEvent | undefined;
 
         if (!existingOverlap) {
           // Create a new event for the overlap
@@ -126,23 +162,24 @@ const getOverlapAvailabilities = (availabilities: LimitedAvailability[]): EventT
             endDate: overlapEnd,
             backgroundColor: EventBgColor.overlap,
             type: 'overlap',
+            selectable: true,
             extendedProps: {
-              ids: [currentAvailability.id, otherAvailability.id],
-              events: [currentAvailability, otherAvailability]
+              availabilityIds: [currentAvailability.id, otherAvailability.id],
+              availabilities: [currentAvailability, otherAvailability]
             }
           });
         } else {
           const existingOverlapExtendedProps = existingOverlap.extendedProps || {};
           // Add availability ids and events to the existing overlap
-          if (!existingOverlapExtendedProps.ids.includes(currentAvailability.id)) {
-            existingOverlap.title = `Overlap | Users #: ${existingOverlapExtendedProps.ids.length + 1}`;
-            existingOverlapExtendedProps.ids.push(currentAvailability.id);
-            existingOverlapExtendedProps.events.push(currentAvailability);
+          if (!existingOverlapExtendedProps.availabilityIds.includes(currentAvailability.id)) {
+            existingOverlap.title = `Overlap | Users #: ${existingOverlapExtendedProps.availabilityIds.length + 1}`;
+            existingOverlapExtendedProps.availabilityIds.push(currentAvailability.id);
+            existingOverlapExtendedProps.availabilities.push(currentAvailability);
           }
-          if (!existingOverlapExtendedProps.ids.includes(otherAvailability.id)) {
-            existingOverlap.title = `Overlap | Users #: ${existingOverlapExtendedProps.ids.length + 1}`;
-            existingOverlapExtendedProps.ids.push(otherAvailability.id);
-            existingOverlapExtendedProps.events.push(otherAvailability);
+          if (!existingOverlapExtendedProps.availabilityIds.includes(otherAvailability.id)) {
+            existingOverlap.title = `Overlap | Users #: ${existingOverlapExtendedProps.availabilityIds.length + 1}`;
+            existingOverlapExtendedProps.availabilityIds.push(otherAvailability.id);
+            existingOverlapExtendedProps.availabilities.push(otherAvailability);
           }
         }
       }

@@ -1,6 +1,5 @@
 import NextAuth from "next-auth" // ADD type before DefaultSession
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { UserRole } from "@prisma/client"
+import { Permission, UserRole, UserRole_ } from "@prisma/client"
 import authConfig from "./auth.config"
 
 import { db } from "@/lib/db"
@@ -10,8 +9,6 @@ import { getTwoFactorConfirmationByUserId } from "@/data/twoFactorConfirmation"
 import { JWT } from "next-auth/jwt"
 import { ExtendedUser } from "./next-auth"
 import { getAccountByUserId } from "./data/account"
-import { ACTIVE_EXPIRATION_MS, INACTIVE_EXPIRATION_MS } from "./constants"
-import { getTimeUntilExpiry } from "./lib/auth"
 
 declare module "next-auth" {
     /**
@@ -27,7 +24,9 @@ declare module "next-auth/jwt" {
     interface JWT {
         /** OpenID ID Token */
         user: {
-            roles?: UserRole[];
+            roles?: UserRole_[];
+            userRoles?: UserRole[];
+            permissions?: Permission[];
             isTwoFactorEnabled?: boolean;
             isOAuth: boolean;
             IAM?: string;
@@ -38,8 +37,6 @@ declare module "next-auth/jwt" {
             email: string;
             id: string;
             emailVerified: Date | null;
-            lastActiveAt: Date;
-            sessionId?: string;
         }
     }
 }
@@ -55,28 +52,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     emailVerified: new Date()
                 }
             })
-        },
-        async signOut(message: any) {
-            const sessionId = message?.token?.user?.sessionId as string;
-            if (!sessionId) return;
-
-            const existingSession = await db.session.findUnique({
-                where: {
-                    id: sessionId
-                }
-            })
-
-            const id = existingSession?.userId;
-            if (!id) return;
-
-            await db.session.delete({
-                where: {
-                    id
-                }
-            }).catch((err) => {
-                // The session has already been deleted
-            })
-        },
+        }
 
     },
     callbacks: {
@@ -108,104 +84,18 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         },
         async session({ session, token }) {
             session.user = token.user;
-            
+
             return session;
         },
-        // async jwt({ token, user }) {
-        //     if (user) {
-        //         // When a user logs in, create a session in the database
-        //         const session = await db.session.create({
-        //             data: {
-        //                 userId: user.id,
-        //                 createdAt: new Date(),
-        //                 updatedAt: new Date(),
-        //                 lastActiveAt: new Date(),
-        //             },
-        //         });
-
-        //         // Store the session ID in the token
-        //         token.user.sessionId = session.id;
-        //     }
-        //     // Ensure token.sub exists
-        //     if (!token.sub) return token;
-
-        //     const existingUser = await getUserById(token.sub);
-
-        //     if (!existingUser) return token;
-        //     const existingAccount = await getAccountByUserId(existingUser.id);
-
-        //     const lastActiveAt = new Date();
-
-        //     // Create the user object
-        //     const userObj: ExtendedUser = {
-        //         firstName: existingUser.firstName || "",
-        //         lastName: existingUser.lastName || "",
-        //         studentClass: existingUser.studentClass || "",
-        //         isTwoFactorEnabled: existingUser.isTwoFactorEnabled,
-        //         isOAuth: Boolean(existingAccount),
-        //         IAM: existingUser.IAM?.toLowerCase(),
-        //         onboardingComplete: existingUser.onboardingComplete,
-        //         email: existingUser.email,
-        //         id: existingUser.id,
-        //         emailVerified: existingUser.emailVerified,
-        //         roles: existingUser.roles,
-        //         lastActiveAt: lastActiveAt,
-        //         sessionId: token.user.sessionId
-        //     };
-
-        //     // Initialize token.user if it doesn't exist
-        //     token.user = token.user || {}; // Ensure token.user is defined
-
-        //     // Assign user properties to token.user
-        //     token.user.firstName = userObj.firstName;
-        //     token.user.lastName = userObj.lastName;
-        //     token.user.studentClass = userObj.studentClass;
-        //     token.user.isOAuth = userObj.isOAuth;
-        //     token.user.IAM = userObj.IAM;
-        //     token.user.onboardingComplete = userObj.onboardingComplete;
-        //     token.user.roles = userObj.roles;
-        //     token.user.isTwoFactorEnabled = userObj.isTwoFactorEnabled;
-        //     token.user.emailVerified = userObj.emailVerified;
-        //     token.user.email = userObj.email;
-        //     token.user.id = userObj.id;
-        //     token.user.lastActiveAt = lastActiveAt;
-
-        //     const timeUntilExpiration = await getTimeUntilExpiry(existingUser);
-
-        //     // Adjust token expiration based on activity
-        //     if (timeUntilExpiration <= 0) return null;
-
-        //     // Optionally, update the last-seen timestamp in the database if the user is active
-        //     if (timeUntilExpiration > 0) {
-        //         await db.user.update({
-        //             where: { id: existingUser.id },
-        //             data: { lastActiveAt }
-        //         });
-        //     }
-
-        //     return token;
-        // }
         async jwt({ token, user }) {
             // When the user logs in (only during the first login), `user` will be available
             if (user && user.id && user.email) {
-                // Create a new session in the database for the logged-in user
-                const session = await db.session.create({
-                    data: {
-                        userId: user.id,
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                        lastActiveAt: new Date(),
-                    },
-                });
-
                 // Initialize the user object inside the token if it doesn't exist
                 token.user = {
-                    sessionId: session.id,
                     id: user.id,
                     email: user.email,
                     emailVerified: null,
                     isOAuth: false,
-                    lastActiveAt: new Date(),
                 };
             } else if (token.user && token.sub) {
                 // For subsequent requests, ensure token.user exists and is assigned properly
@@ -217,6 +107,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
                 const lastActiveAt = new Date();
                 const existingAccount = await getAccountByUserId(existingUser.id);
+
+                const userRoles = existingUser.UserRoles;
+                const permissions = userRoles.map((userRole) => userRole.permissions).flat();
+                // Remove duplicates
+                const uniquePermissions = permissions.filter((permission, index) => permissions.indexOf(permission) === index);
 
                 // Populate token.user if not already done
                 token.user = {
@@ -231,35 +126,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     email: existingUser.email,
                     emailVerified: existingUser.emailVerified,
                     roles: existingUser.roles,
-                    lastActiveAt: lastActiveAt,
+                    permissions: uniquePermissions,
+                    userRoles: userRoles,
                 };
-
-                const oldSession = await db.session.findUnique({ where: { id: token.user.sessionId }, select: { lastActiveAt: true, id: true } });
-                const oldSessionLastActiveAt = oldSession?.lastActiveAt;
-
-                if (!oldSession == null || !oldSessionLastActiveAt) {
-                    console.info('No old session found for user\nLogging out user');
-                    return null;
-                }
-
-                const timeUntilExpiration = await getTimeUntilExpiry({ lastActiveAt: oldSessionLastActiveAt });
-
-                // Adjust the token expiration based on activity
-                if (timeUntilExpiration <= 0) {
-                    await db.session.delete({
-                        where: { id: oldSession.id }
-                    }).catch((err) => {
-                        // The session has already been deleted
-                    })
-                    console.info('Session expired\nLogging out user');
-                    return null;
-                }
-
-                // Update the last-seen timestamp in the database
-                await db.session.update({
-                    where: { id: oldSession.id },
-                    data: { lastActiveAt }
-                });
             }
 
             return token;
@@ -267,11 +136,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     },
     session: {
         strategy: "jwt",
-        maxAge: ACTIVE_EXPIRATION_MS / 1000, // Set maxAge to the active expiration time
-        updateAge: 0, // Set updateAge to the active expiration time
-    },
-    jwt: {
-        maxAge: ACTIVE_EXPIRATION_MS / 1000, // Set maxAge to the active expiration time
+        maxAge: 30 * 60,
+        updateAge: 5 * 60,
     },
     ...authConfig
 })

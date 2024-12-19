@@ -6,7 +6,7 @@ import { RoleGate } from "@/components/auth/roleGate";
 import { FormSuccess } from "@/components/formSuccess";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { UserRole } from "@prisma/client";
+import { UserRole_ } from "@prisma/client";
 import { toast } from "sonner";
 
 const AdminPage = () => {
@@ -43,7 +43,7 @@ const AdminPage = () => {
                 </p>
             </CardHeader>
             <CardContent className="space-y-4">
-                <RoleGate allowedRoles={[UserRole.ADMIN]} >
+                <RoleGate allowedRoles={[UserRole_.ADMIN]} >
                     <FormSuccess message="You are allowed to view this content!" />
                 </RoleGate>
                 <div className="flex flex-row justify-between items-center rounded-lg border p-3 shadow-md">
@@ -67,4 +67,4 @@ const AdminPage = () => {
     )
 }
 
-export default ProtectedPageClient(AdminPage, { allowedRoles: [UserRole.ADMIN], requireAll: false });
+export default ProtectedPageClient(AdminPage, { allowedRoles: [UserRole_.ADMIN], requireAll: false });

@@ -11,7 +11,7 @@ import { ExtendedUser } from '@/next-auth';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createShift } from '@/actions/data/shift';
-import { createAvailability, deleteAvailability } from '@/actions/data/availability';
+import { createAvailability, deleteAvailability, LimitedAvailability } from '@/actions/data/availability';
 import { getTeams, LimitedTeam } from '@/actions/data/team';
 
 interface OverlapModalProps {
@@ -28,7 +28,7 @@ interface CreateShiftModalProps {
     users: User[];
     startDate: Date;
     endDate: Date;
-    availabilities: Availability[];
+    availabilities: LimitedAvailability[];
     handleBack: () => void;
 }
 
@@ -61,7 +61,7 @@ export const OverlapModal = ({ modalOpen, setModalOpen, selectedEvent, currentUs
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ ids: selectedEvent.extendedProps?.events.map((event: { userId: string; }) => event.userId) }),
+                body: JSON.stringify({ ids: selectedEvent.extendedProps?.availabilities.map((event: { userId: string; }) => event.userId) }),
                 cache: "default",
             });
             const data = await res.json();
@@ -145,7 +145,7 @@ export const OverlapModal = ({ modalOpen, setModalOpen, selectedEvent, currentUs
                 startDate={startDate}
                 endDate={endDate}
                 createdByuserId={currentUser?.id}
-                availabilities={selectedEvent.extendedProps?.events}
+                availabilities={selectedEvent.extendedProps?.availabilities}
                 handleBack={() => {
                     setCreateShiftModalOpen((prev) => !prev);
                     setModalOpen((prev) => !prev);

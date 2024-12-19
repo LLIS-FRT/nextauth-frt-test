@@ -64,6 +64,7 @@ const Calendar: React.FC<CalendarProps> = ({
             id,
             title,
             type: 'availability',
+            selectable: event.selectable,
             extendedProps: event.extendedProps,
           });
         } else if (type === 'exam') {
@@ -74,6 +75,7 @@ const Calendar: React.FC<CalendarProps> = ({
             id,
             title,
             type: 'exam',
+            selectable: event.selectable,
             extendedProps: event.extendedProps,
           });
         } else if (type === 'shift') {
@@ -84,6 +86,7 @@ const Calendar: React.FC<CalendarProps> = ({
             id,
             title,
             type: 'shift',
+            selectable: event.selectable,
             shiftType: event.shiftType,
             extendedProps: event.extendedProps,
           });
@@ -95,6 +98,7 @@ const Calendar: React.FC<CalendarProps> = ({
             id,
             title,
             type: 'overlap',
+            selectable: event.selectable,
             extendedProps: event.extendedProps,
           });
         }

@@ -1,6 +1,6 @@
-import { protectedRoute } from "@/lib/auth";
+import { currentUser, permissionsChecker, protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { UserRole } from "@prisma/client";
+import { PermissionName, UserRole_ } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 const getID = (req: NextRequest) => {
@@ -23,10 +23,16 @@ const getID = (req: NextRequest) => {
 // GET shift by user ID
 export const GET = protectedRoute(
     async function GET(req) {
+        const currentUser_ = await currentUser();
+        if (!currentUser_) return new NextResponse("Unauthorized", { status: 401 });
+
         const { IAM, id, valid } = getID(req);
         if (!valid) return new NextResponse("Invalid ID", { status: 400 });
-
         if (!id) return new NextResponse("Invalid ID", { status: 400 });
+
+        const canViewAny = await permissionsChecker([PermissionName.VIEW_ANY_SHIFT]);
+
+        if (currentUser_.id !== id && !canViewAny) return new NextResponse("Unauthorized", { status: 401 });
 
         const user = await db.user.findUnique({
             where: IAM !== null
@@ -52,6 +58,5 @@ export const GET = protectedRoute(
 
         return new NextResponse(JSON.stringify(obj), { status: 200 });
     }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
-    requireAll: false // Set to true if you need all roles to be present
-});
+    requiredPermissions: [PermissionName.VIEW_OWN_SHIFT]
+}); 

@@ -11,13 +11,18 @@ const formatMissionNumber = (missionNumber: string) => {
     return { formattedDate, reportNumberPart };
 };
 
-const ReportCards = ({ report }: { report: Report }) => {
+const ReportCard = ({ report }: { report: Report }) => {
+    console.log(report)
     const { archived, missionNumber, resolved, missionInfo, firstResponders } = report;
 
     const { formattedDate, reportNumberPart } = formatMissionNumber(missionNumber.toString());
 
+    const handleClick = () => {
+        window.location.href = `/reports/${missionNumber}`
+    };
+
     return (
-        <Card className="mb-6 shadow-lg rounded-lg overflow-hidden">
+        <Card className="mb-6 shadow rounded-lg overflow-hidden h-fit" onClick={handleClick}>
             <CardHeader className="bg-blue-50 px-6 py-4">
                 <CardTitle className="text-lg font-semibold text-blue-700">
                     Mission Report #{reportNumberPart}
@@ -44,7 +49,7 @@ const ReportCards = ({ report }: { report: Report }) => {
                             <p className="text-sm text-gray-900">{firstResponders.teamId}</p>
                         </div>
                         <div className="space-y-3">
-                            {firstResponders.firstResponders.map((firstResponder) => {
+                            {firstResponders.firstResponders?.map((firstResponder) => {
                                 const { id, position, IAM, email, firstName, lastName } = firstResponder;
                                 return (
                                     <div key={id} className="flex flex-col">
@@ -92,4 +97,4 @@ const ReportCards = ({ report }: { report: Report }) => {
     );
 };
 
-export default ReportCards;
+export default ReportCard;

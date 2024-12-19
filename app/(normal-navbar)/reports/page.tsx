@@ -3,13 +3,14 @@
 import { getReports } from '@/actions/data/report';
 import { Report } from '@/actions/data/types';
 import { RoleGate } from '@/components/auth/roleGate';
-import ReportCards from '@/components/reports/reportCards';
+import { CreateReportModal } from '@/components/modals/createReportModal';
+import ReportCard from '@/components/report/reportCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserRole } from '@prisma/client';
+import { UserRole_ } from '@prisma/client';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 
 const SearchArea = ({ handleSearch }: { handleSearch: (year: string, month: string, day: string, id: string) => void }) => {
     const [year, setYear] = useState('');
@@ -18,8 +19,10 @@ const SearchArea = ({ handleSearch }: { handleSearch: (year: string, month: stri
     const [id, setId] = useState('');
 
     useEffect(() => {
+        console.log("Here")
         handleSearch(year, month, day, id);
-    }, [year, month, day, id, handleSearch]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [year, month, day, id]);
 
     return (
         <div className="space-y-2 mb-2">
@@ -114,22 +117,26 @@ const ReportsPage = () => {
         setFilteredReports(filteredReports);
     };
 
+    useEffect(() => {
+        setFilteredReports(reports);
+    }, [reports]);
+
     // TODO: Make more mobile friendly
 
     return (
         <div className="flex w-full min-h-full">
             <RoleGate
                 allowedRoles={[
-                    UserRole.USER,
+                    UserRole_.MEMBER,
                 ]}
             >
                 <div className="flex w-full h-full">
                     {/* Search Area on the Left */}
-                    <div className="w-1/3 sm:w-1/4 bg-gray-100 p-4 border-r border-gray-300 flex flex-col">
+                    <div className="w-1/3 sm:w-1/4 bg-gray-100 p-4 border-r border-gray-300 flex flex-col h-full"> {/* Make height full */}
                         <h2 className="text-lg font-semibold mb-4">Search Reports</h2>
                         <SearchArea handleSearch={handleSearch} />
                         <hr className="mb-2" />
-                        <div className="flex justify-between flex-grow items-end w-full"> {/* Ensure flex-grow is here to push the button down */}
+                        <div className="flex justify-between flex-grow items-end w-full">
                             <Button
                                 className="px-4 py-2 bg-green-500 text-white rounded-md shadow-md hover:bg-green-600 w-full"
                                 size={"lg"}
@@ -141,34 +148,33 @@ const ReportsPage = () => {
                     </div>
 
                     {/* Reports Display on the Right */}
-                    <div className="w-2/3 sm:w-3/4 bg-white p-4 flex flex-col h-full overflow-y-auto"> {/* Allow this section to scroll */}
+                    <div className="w-2/3 sm:w-3/4 bg-white flex h-full overflow-y-auto"> {/* Add overflow-y-auto here */}
                         {isLoadingReports ? (
                             <div className="flex items-center justify-center bg-white w-full flex-grow">
                                 <p>Loading...</p>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center bg-white w-full flex-grow">
+                            <div className="flex flex-col items-center w-full flex-grow">
                                 <h1 className="text-2xl text-center font-bold mb-4 w-full">Reports</h1>
                                 {isErrorReports ? (
                                     <div className="flex items-center justify-center bg-white w-full flex-grow">
                                         <p>{error.message}</p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 gap-4 flex-grow overflow-y-auto"> {/* Allow this to scroll */}
+                                    <div className="flex flex-row flex-wrap gap-2 justify-center w-full">
                                         {filteredReports && filteredReports.map((report) => (
-                                            <ReportCards key={report.id} report={report} />
-                                        ))}
-                                        {/* Example placeholder content */}
-                                        {Array.from({ length: 50 }).map((_, index) => (
-                                            <div key={index} className="h-10 bg-gray-200">Placeholder</div>
+                                            <div key={report.id} className="h-fit w-fit hover:transform hover:scale-105 hover:cursor-pointer">
+                                                <ReportCard report={report} />
+                                            </div>
                                         ))}
                                     </div>
                                 )}
-                                <div className="h-10 bg-transparent"></div> {/* Optional padding for scrolling effect */}
+                                <div className="h-10 bg-transparent"></div>
                             </div>
                         )}
                     </div>
                 </div>
+                {createReportModalOpen && <CreateReportModal modalOpen={createReportModalOpen} setModalOpen={setCreateReportModalOpen} />}
             </RoleGate>
         </div>
     );

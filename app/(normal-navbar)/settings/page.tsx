@@ -28,12 +28,12 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { FormSuccess } from "@/components/formSuccess";
 import { FormError } from "@/components/formError";
 import { MultiSelector, MultiSelectorContent, MultiSelectorInput, MultiSelectorItem, MultiSelectorList, MultiSelectorTrigger } from "@/components/ui/multiSelector";
-import { UserRole } from "@prisma/client";
+import { UserRole_ } from "@prisma/client";
 import { Switch } from "@/components/ui/switch";
 import { RoleGate } from "@/components/auth/roleGate";
 import PasswordField from "@/components/auth/PasswordField";
 
-const formatRole = (role: UserRole) => {
+const formatRole = (role: UserRole_) => {
     // Convert the role to a string
     let formattedRole = role.toString();
 
@@ -114,14 +114,12 @@ const SettingsPage = () => {
             };
 
             // Check if current form values differ from user values
-            if (JSON.stringify(form.getValues()) !== JSON.stringify(newValues)) {
-                form.reset(newValues);
-            }
+            if (JSON.stringify(form.getValues()) !== JSON.stringify(newValues)) form.reset(newValues);
         }
     }, [form, user]);
 
     return (
-        <div className="h-full w-full">
+        <div className="h-full w-full flex items-center justify-center">
             <Card className="w-full sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px] mt-5">
                 <CardHeader>
                     <p className="text-2xl font-semibold text-center">
@@ -235,7 +233,7 @@ const SettingsPage = () => {
                                     </>
                                 )}
                                 <RoleGate
-                                    allowedRoles={[UserRole.ADMIN]}
+                                    allowedRoles={[UserRole_.ADMIN]}
                                     requireAll={false}
                                     showMessage
                                 >
@@ -256,7 +254,7 @@ const SettingsPage = () => {
                                                     </MultiSelectorTrigger>
                                                     <MultiSelectorContent>
                                                         <MultiSelectorList>
-                                                            {Object.values(UserRole).map((role) => (
+                                                            {Object.values(UserRole_).map((role) => (
                                                                 <MultiSelectorItem key={role} value={role}>{formatRole(role)}</MultiSelectorItem>
                                                             ))}
                                                         </MultiSelectorList>

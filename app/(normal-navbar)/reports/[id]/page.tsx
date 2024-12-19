@@ -4,7 +4,6 @@ import { getReports } from '@/actions/data/report';
 import ReportForm from '@/components/report/reportForm';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation'
-import { Suspense } from 'react';
 
 const ReportPage = () => {
     const missionNumber = useParams().id.toString();
@@ -27,9 +26,7 @@ const ReportPage = () => {
     return (
         <div className="flex justify-center w-full h-full bg-white">
             <div className="mt-2 w-full h-full">
-                <Suspense>
-                    <ReportForm report={report} missionNumber={missionNumber} />
-                </Suspense>
+                <ReportForm report={report} missionNumber={missionNumber} />
             </div>
         </div>
     )

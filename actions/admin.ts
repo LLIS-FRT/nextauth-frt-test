@@ -1,14 +1,13 @@
 "use server";
 
-import { currentRoles } from "@/lib/auth";
-import { UserRole } from "@prisma/client";
+import { permissionsChecker, } from "@/lib/auth";
+import { PermissionName } from "@prisma/client";
 
 export const admin = async () => {
-    const role = await currentRoles();
+    const isAdmin = permissionsChecker([PermissionName.ADMINISTRATOR])
 
-    // Check if we have the admin role
-    if (!role.includes(UserRole.ADMIN)) return { error: "Forbidden Server Action!" }
-
+    // Check if we have the admin permission
+    if (!isAdmin) return { error: "Forbidden Server Action!" }
 
     return { success: "Allowed Server Action!" }
 }

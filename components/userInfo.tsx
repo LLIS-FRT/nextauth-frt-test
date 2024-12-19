@@ -1,5 +1,3 @@
-import { UserRole } from "@prisma/client"
-import { DefaultSession, Session } from "next-auth"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { ExtendedUser } from "@/next-auth"
 import { Badge } from "@/components/ui/badge"

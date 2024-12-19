@@ -1,6 +1,6 @@
 import { protectedRoute } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { UserRole } from '@prisma/client';
+import { PermissionName, UserRole_ } from '@prisma/client';
 import { NextResponse } from 'next/server';
 
 export const POST = protectedRoute(async function POST(req) {
@@ -18,6 +18,5 @@ export const POST = protectedRoute(async function POST(req) {
 
     return new NextResponse(JSON.stringify(users), { status: 200 });
 }, {
-    allowedRoles: [UserRole.ADMIN],
-    requireAll: false // Set to true if you need all roles to be present
+    requiredPermissions: [PermissionName.VIEW_ANY_PROFILE]
 });

@@ -19,6 +19,7 @@ const findMissingSlots = (timeUnits: TimeUnit[]): TimeUnit[] => {
         endTime: nextSlot.startTime,
         isBreak: true,
         isSelectable: false,
+        holidays: [],
       });
     }
   }

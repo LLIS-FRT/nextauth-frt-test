@@ -2,7 +2,7 @@
 
 import { currentUser, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Team, UserRole } from "@prisma/client";
+import { PermissionName, Team, UserRole_ } from "@prisma/client";
 
 export type LimitedTeam = Pick<Team, "id" | "name" | "possiblePositions" | "minUsers" | "maxUsers">
 
@@ -20,16 +20,6 @@ export interface GetTeamsResponse {
  */
 export const getTeams = protectedServerAction(
     async (id: string | undefined): Promise<GetTeamsResponse> => {
-        const user = await currentUser();
-        if (!user) throw new Error("User not found");
-        const userId = user.id;
-
-        const validUser = await db.user.findUnique({ where: { id: userId }, select: { roles: true } });
-
-        if (!validUser) throw new Error("User not found");
-
-
-
         const select = {
             id: true,
             name: true,
@@ -49,6 +39,5 @@ export const getTeams = protectedServerAction(
             throw new Error("Invalid id");
         }
     }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
-    requireAll: false,
+    requiredPermissions: [PermissionName.VIEW_ANY_TEAM]
 })

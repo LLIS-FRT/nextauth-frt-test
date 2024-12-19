@@ -1,6 +1,6 @@
-import { currentUser, protectedRoute } from "@/lib/auth";
+import { currentUser, permissionsChecker, protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { UserRole } from "@prisma/client";
+import { PermissionName, UserRole_ } from "@prisma/client";
 import { JsonValue } from "@prisma/client/runtime/library";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -9,6 +9,11 @@ const getID = (req: NextRequest) => req.nextUrl.pathname.split("/").pop()
 // GET report by ID
 export const GET = protectedRoute(
     async function GET(req) {
+        const user = await currentUser();
+        if (!user) return new NextResponse("Unauthorized", { status: 401 });
+
+        const canViewAny = await permissionsChecker([PermissionName.VIEW_ANY_REPORT]);
+
         const id = getID(req);
         if (!id) return new NextResponse("Invalid ID", { status: 400 });
 
@@ -16,12 +21,13 @@ export const GET = protectedRoute(
 
         if (!report) return new NextResponse("No report found", { status: 404 });
 
+        if (report.createdById !== user.id && !canViewAny) return new NextResponse("Unauthorized", { status: 401 });
+
         return new NextResponse(JSON.stringify({ report }), { status: 200 });
     }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
-    requireAll: false // Set to true if you need all roles to be present
+    requiredPermissions: [PermissionName.VIEW_OWN_REPORT]
 });
-
+ 
 // DELETE report by ID
 export const DELETE = protectedRoute(
     async function DELETE(req) {
@@ -35,8 +41,7 @@ export const DELETE = protectedRoute(
 
         return new NextResponse(JSON.stringify({ deletedReport }), { status: 200 });
     }, {
-    allowedRoles: [UserRole.ADMIN],
-    requireAll: false // Set to true if you need all roles to be present
+    requiredPermissions: [PermissionName.DELETE_ANY_REPORT]
 });
 
 // UPDATE report by ID
@@ -48,16 +53,16 @@ export const PUT = protectedRoute(
         if (!id) return new NextResponse("Invalid ID", { status: 400 });
 
         if (!user) return new NextResponse("Unauthorized", { status: 401 });
-        const roles = user.roles;
-        if (!roles) return new NextResponse("Unauthorized", { status: 401 });
 
         const body = await req.json();
 
         const report = await db.report.findUnique({ where: { id } });
         if (!report) return new NextResponse("No report found", { status: 404 });
 
-        // TODO: We need to verify that the user who is editing the report is the same as the one who created it
-        if (report.createdById !== user.id && !roles.includes(UserRole.ADMIN)) return new NextResponse("Unauthorized", { status: 401 });
+        const canUpdateAny = await permissionsChecker([PermissionName.UPDATE_ANY_REPORT]);
+
+        // We need to verify that the user who is editing the report is the same as the one who created it
+        if (report.createdById !== user.id && !canUpdateAny) return new NextResponse("Unauthorized", { status: 401 });
 
         const firstRespondersJson: string = JSON.stringify(body?.firstResponders || report.firstResponders);
         const samplerSchemaJson: string = JSON.stringify(body?.samplerSchema || report.samplerSchema);
@@ -81,6 +86,5 @@ export const PUT = protectedRoute(
 
         return new NextResponse(JSON.stringify({ updatedReport }), { status: 200 });
     }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
-    requireAll: false // Set to true if you need all roles to be present
+    requiredPermissions: [PermissionName.UPDATE_OWN_REPORT],
 });

@@ -7,6 +7,7 @@ import MissionNumber from "./missionNumber";
 import FirstRespondersForm from "./firstRespondersForm";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
+import CollapsibleSection from "./CollapsibleSection";
 
 enum FormState {
     Create,
@@ -31,6 +32,7 @@ const ReportForm = ({ report, missionNumber }: { report: Report | undefined, mis
 
     if (report) {
         // TODO: Check if the user can actually update this report
+        // We get the firstResponders
         state = FormState.Update;
     }
 
@@ -55,10 +57,11 @@ const ReportForm = ({ report, missionNumber }: { report: Report | undefined, mis
             if (missionNumber === generatedID.toString()) return setIsValidMissionNumber(true);
         }
 
-        if (!missionNumber) return setIsValidMissionNumber(false);
-        if (missionNumber.length != 10) return setIsValidMissionNumber(false);
-        checkValidity();
-    }, [missionNumber])
+        if (!missionNumber) return setIsValidMissionNumber(false); // Does it exist?
+        if (missionNumber.length != 10) return setIsValidMissionNumber(false); // Is it 10 characters long?
+        if (state === FormState.Create) checkValidity();
+        else return setIsValidMissionNumber(true);
+    }, [missionNumber, state])
 
     if (!isValidMissionNumber) {
         return (
@@ -144,8 +147,27 @@ const ReportForm = ({ report, missionNumber }: { report: Report | undefined, mis
 
     return (
         <div className="w-full h-full flex flex-col items-center">
+            You are {state === FormState.View ? "viewing this" : state === FormState.Create ? "creating a new" : "updating this"} report
             <MissionNumber missionNumber={missionNumber} />
-            <FirstRespondersForm firstRespondersData={firstResponders} setFirstResponders={setFirstResponders} disabled={state === FormState.View} />
+            <CollapsibleSection title="First Responders">
+                <FirstRespondersForm
+                    firstRespondersData={firstResponders}
+                    setFirstResponders={setFirstResponders}
+                    disabled={state === FormState.View}
+                />
+            </CollapsibleSection>
+            <CollapsibleSection title="Patient Info">
+                Under Construction
+            </CollapsibleSection>
+            <CollapsibleSection title="X ABCDE">
+                Under Construction
+            </CollapsibleSection>
+            <CollapsibleSection title="Sampler">
+                Under Construction
+            </CollapsibleSection>
+            <CollapsibleSection title="Mission Info">
+                Under Construction
+            </CollapsibleSection>
             <FormButtons />
         </div>
     )

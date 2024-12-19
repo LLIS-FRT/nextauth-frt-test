@@ -4,10 +4,11 @@ import { getTeams } from '@/actions/data/team';
 import { Dialog, DialogOverlay, DialogContent, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { createReport } from '@/actions/data/report';
+import { Button } from '@/components/ui/button';
 
 interface CreateReportModalProps {
     modalOpen: boolean;
@@ -17,7 +18,6 @@ interface CreateReportModalProps {
 
 export const CreateReportModal = ({ modalOpen, setModalOpen, reload }: CreateReportModalProps) => {
     const [teamId, setTeamId] = useState("");
-    const [positions, setPositions] = useState<string[]>([]);
 
     const queryClient = useQueryClient();
 
@@ -36,33 +36,42 @@ export const CreateReportModal = ({ modalOpen, setModalOpen, reload }: CreateRep
             const currentTeam = teams?.find((team) => team.id === teamId);
             if (!currentTeam) return;
 
-            await createReport({})
+            const res = await createReport({
+                firstResponders: {
+                    teamId,
+                    firstResponders: []
+                }
+            })
+
+            return res;
         },
         onError: () => {
             toast.error("Something went wrong");
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ["reports"] });
             setModalOpen(false);
             reload?.();
+
+            const report = data?.report;
+            if (report) {
+                toast.success(`Report created successfully. Mission number: ${report.missionNumber}`);
+            }
         },
     })
 
-    useEffect(() => {
-        if (teamId) {
-            const teamPositions = teams?.find((team) => team.id === teamId)?.possiblePositions || [];
-            const filteredPositions = teamPositions.filter((position): position is string => typeof position === "string");
-            setPositions(filteredPositions);
-        }
-    }, [teamId, teams]);
+    const onSubmit = () => {
+        server_createReport();
+    }
 
     return (
         <Dialog open={modalOpen} onOpenChange={() => setModalOpen((prev) => !prev)}>
             <DialogOverlay className="fixed inset-0 bg-black/50 flex items-center justify-center" />
             <DialogContent className="bg-white p-6 rounded-md max-w-lg w-full">
                 <DialogHeader>
-                    <DialogTitle>Create Shift</DialogTitle>
-                    <DialogDescription>Fill in the details to create a new shift.</DialogDescription>
+                    <DialogTitle>Create Report</DialogTitle>
+                    <DialogDescription>Fill in the details to create a new report.</DialogDescription>
+                    <DialogDescription>NOTE: The report must be created on the same day as the incident.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                     {/* Team Selection */}
@@ -84,36 +93,13 @@ export const CreateReportModal = ({ modalOpen, setModalOpen, reload }: CreateRep
                             </SelectContent>
                         </Select>
                     )}
-
-                    {/* Position Selection Label */}
-                    {teamId && positions.length > 0 && (
-                        <div>
-                            <div className="space-y-2">
-                                <Select >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Position" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {positions.map((position, index) => (
-                                            <SelectItem
-                                                key={index}
-                                                value={position}
-                                            >
-                                                {position}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 <DialogFooter className="mt-4">
-                    {/* <Button variant="outline" onClick={handleBack}>Back</Button> */}
-                    {/* <Button variant="default" onClick={submitData}>Create</Button> */}
+                    <Button variant="outline" onClick={() => setModalOpen((prev) => !prev)}>Close</Button>
+                    <Button variant="default" onClick={onSubmit} disabled={!teamId}>Create</Button>
                 </DialogFooter>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 }

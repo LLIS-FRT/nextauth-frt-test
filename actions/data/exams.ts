@@ -1,10 +1,10 @@
 "use server";
 
-import { currentUser, protectedServerAction } from "@/lib/auth";
+import { currentUser, permissionsChecker, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { untis } from "@/lib/untis";
 import { getClasses } from "@/utils/classes";
-import { UserRole } from "@prisma/client";
+import { PermissionName, UserRole_ } from "@prisma/client";
 import { Exam } from "webuntis";
 
 interface GetExamsProps {
@@ -53,13 +53,6 @@ export const getExams = protectedServerAction(
             }
         }
 
-        const rolesThatCanSeeAllExams: UserRole[] = [UserRole.ADMIN];
-
-        // To access ALL exams user needs to be an admin
-        if (classID === null && !validUser.roles.some(role => rolesThatCanSeeAllExams.includes(role))) {
-            throw new Error("No class with the name '" + studentClass + "' found");
-        }
-
         // All exams of all classes
         const exams = await untis.getExamsForRange(currentSchoolYear.startDate, currentSchoolYear.endDate, classID || undefined, true, true);
 
@@ -86,8 +79,7 @@ export const getExams = protectedServerAction(
             exams: filteredExams
         };
     }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER], // Allow admins and teachers
-    requireAll: false // Only one of the roles is required
+    requiredPermissions: [PermissionName.VIEW_ANY_EXAM]
 });
 
 export const removeExam = protectedServerAction(
@@ -96,10 +88,8 @@ export const removeExam = protectedServerAction(
         let userToRemoveFromID = userId !== null && userId !== undefined ? userId : user?.id;
 
         if (!user) throw new Error("User not found");
-        const roles = user.roles;
-        if (!roles) throw new Error("User not found");
-
-        const isAdmin = roles.includes(UserRole.ADMIN);
+        
+        const isAdmin = await permissionsChecker([PermissionName.UPDATE_ANY_EXAM]);
 
         if (userToRemoveFromID !== user.id && !isAdmin) throw new Error("Unauthorized");
 
@@ -140,6 +130,5 @@ export const removeExam = protectedServerAction(
         })
         return updatedUser;
     }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
-    requireAll: false // Set to true if you need all roles to be present
+    requiredPermissions: [PermissionName.UPDATE_OWN_EXAM]
 });

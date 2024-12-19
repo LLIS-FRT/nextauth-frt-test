@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/navbar";
-import { UserRole } from "@prisma/client";
+import { PermissionName, UserRole_ } from "@prisma/client";
 
 interface ProtectedLayoutProps {
   children: React.ReactNode;
@@ -10,19 +10,34 @@ const routes = [
   {
     href: "/admin",
     label: "Admin",
-    roles: [UserRole.ADMIN],
+    permissions: [
+      PermissionName.ADMINISTRATOR
+    ],
     isAuthenticated: true,
   },
   {
     href: "/calendar",
     label: "Calendar",
-    roles: [UserRole.ADMIN, UserRole.MEMBER],
+    permissions: [
+      PermissionName.CREATE_ANY_AVAILABILITY,
+      PermissionName.CREATE_OWN_AVAILABILITY,
+      PermissionName.DELETE_OWN_AVAILABILITY,
+      PermissionName.DELETE_ANY_AVAILABILITY,
+      PermissionName.VIEW_ANY_AVAILABILITY,
+      PermissionName.VIEW_OWN_AVAILABILITY
+    ],
     isAuthenticated: true,
   },
   {
     href: "/reports",
     label: "Reports",
-    roles: [UserRole.ADMIN, UserRole.MEMBER],
+    permissions: [
+      PermissionName.CREATE_ANY_REPORT,
+      PermissionName.CREATE_OWN_REPORT,
+      PermissionName.DELETE_ANY_REPORT,
+      PermissionName.VIEW_ANY_REPORT,
+      PermissionName.VIEW_OWN_REPORT
+    ],
     isAuthenticated: true,
   },
 ];
@@ -36,7 +51,7 @@ const NormalLayout = ({ children }: ProtectedLayoutProps) => {
       </div>
 
       {/* Main content */}
-      <div className={`flex flex-col items-center justify-center w-full h-[calc(100vh-72px)]`}>
+      <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-72px)]">
         {children}
       </div>
     </div>

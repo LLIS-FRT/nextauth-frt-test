@@ -1,8 +1,8 @@
 "use server";
 
-import { currentUser, protectedServerAction } from "@/lib/auth";
+import { currentUser, permissionsChecker, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Availability, UserRole } from "@prisma/client";
+import { Availability, PermissionName, UserRole_ } from "@prisma/client";
 
 export type LimitedAvailability = Pick<Availability, "startDate" | "endDate" | "id" | "userId">
 
@@ -22,13 +22,9 @@ export const getAvailabilities = protectedServerAction(
     async (availabilityId: string | string[] | undefined): Promise<GetAvailabilitiesResponse> => {
         const user = await currentUser();
         if (!user) throw new Error("User not found");
-
         const userId = user.id;
 
-        const validUser = await db.user.findUnique({ where: { id: userId }, select: { roles: true } });
-        if (!validUser) throw new Error("User not found");
-
-        const isAdmin = validUser.roles.includes(UserRole.ADMIN);
+        const canGetAnyAvailabilities = await permissionsChecker([PermissionName.VIEW_ANY_AVAILABILITY]);
 
         const select = {
             startDate: true,
@@ -37,27 +33,27 @@ export const getAvailabilities = protectedServerAction(
             userId: true,
         };
 
-        const needsUserId = isAdmin ? undefined : userId;
+        const needsUserId = canGetAnyAvailabilities ? undefined : userId;
 
         if (!availabilityId) {
             const availabilities = await db.availability.findMany({ where: { userId: needsUserId }, select });
 
-            return { allAvailabilities: isAdmin, availabilities };
+            return { allAvailabilities: canGetAnyAvailabilities, availabilities };
         } else if (Array.isArray(availabilityId)) {
             const availabilities = await db.availability.findMany({ where: { id: { in: availabilityId }, userId: needsUserId }, select });
 
-            return { allAvailabilities: isAdmin, availabilities };
+            return { allAvailabilities: canGetAnyAvailabilities, availabilities };
         } else if (typeof availabilityId === "string") {
             const availability = await db.availability.findUnique({ where: { id: availabilityId, userId: needsUserId }, select });
 
             if (!availability) throw new Error("Availability not found");
 
-            return { allAvailabilities: isAdmin, availabilities: [availability] };
+            return { allAvailabilities: canGetAnyAvailabilities, availabilities: [availability] };
         } else {
             throw new Error("Invalid id");
         }
     }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
+    requiredPermissions: [PermissionName.VIEW_OWN_AVAILABILITY]
 });
 
 /**
@@ -74,23 +70,14 @@ export const getAvailabilitiesByUser = protectedServerAction(
         if (!current_user) throw new Error("User not found");
 
         const currentUserId = current_user.id;
-        const currentUserIAM = current_user.IAM;
 
-        if (isIAM) {
-            throw new Error("Not implemented! Use ID");
-        }
+        if (isIAM) throw new Error("Not implemented! Use ID");
 
         // If the current user id is not the same as the id in the request 
         if (currentUserId !== id) {
-            const user = await db.user.findUnique({ where: { id }, select: { roles: true } });
-            if (!user) throw new Error("User not found");
-
-            const roles = user.roles;
-            if (!roles) throw new Error("User not found");
-
-            const isAdmin = roles.includes(UserRole.ADMIN);
-
-            if (!isAdmin) throw new Error("Unauthorized");
+            // Replace with permissions system
+            const canViewAny = permissionsChecker([PermissionName.VIEW_ANY_AVAILABILITY]);
+            if (!canViewAny) throw new Error("Unauthorized");
 
             const availabilities = await db.availability.findMany({ where: { userId: id } });
             return availabilities;
@@ -102,7 +89,7 @@ export const getAvailabilitiesByUser = protectedServerAction(
             return availabilities;
         }
     }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
+    requiredPermissions: [PermissionName.VIEW_OWN_AVAILABILITY]
 });
 
 /**
@@ -116,15 +103,12 @@ export const createAvailability = protectedServerAction(
         const user = await currentUser();
         if (!user) throw new Error("User not found");
 
-        const roles = user.roles;
-        if (!roles) throw new Error("User not found");
-
-        const isAdmin = roles.includes(UserRole.ADMIN);
+        const canCreateAny = await permissionsChecker([PermissionName.CREATE_ANY_AVAILABILITY]);
 
         const { endDate, startDate, userId } = availability;
 
         // Check if the userId is the same as the current user
-        if (userId !== user.id && !isAdmin) throw new Error("Unauthorized");
+        if (userId !== user.id && !canCreateAny) throw new Error("Unauthorized");
 
         // Ensure the start date is before the end date
         if (startDate.getTime() > endDate.getTime()) throw new Error("Start date cannot be after end date");
@@ -140,7 +124,7 @@ export const createAvailability = protectedServerAction(
         );
         return newAvailability;
     }, {
-    allowedRoles: [UserRole.MEMBER, UserRole.ADMIN],
+    requiredPermissions: [PermissionName.CREATE_OWN_AVAILABILITY]
 });
 
 /**
@@ -154,21 +138,18 @@ export const deleteAvailability = protectedServerAction(
         const user = await currentUser();
         if (!user) throw new Error("User not found");
 
-        const roles = user.roles;
-        if (!roles) throw new Error("User not found");
-
-        const isAdmin = roles.includes(UserRole.ADMIN);
+        const canDeleteAny = await permissionsChecker([PermissionName.DELETE_ANY_AVAILABILITY]);
 
         const availability = await db.availability.findUnique({ where: { id }, select: { userId: true } });
         if (!availability) throw new Error("Availability not found");
 
         // Check if the userId is the same as the current user
-        if (availability.userId !== user.id && !isAdmin) throw new Error("Unauthorized");
+        if (availability.userId !== user.id && !canDeleteAny) throw new Error("Unauthorized");
 
         const deletedAvailability = await db.availability.delete({ where: { id } });
         return deletedAvailability;
     }, {
-    allowedRoles: [UserRole.MEMBER, UserRole.ADMIN],
+    requiredPermissions: [PermissionName.DELETE_OWN_AVAILABILITY]
 });
 
 /**
@@ -182,17 +163,14 @@ export const updateAvailability = protectedServerAction(
     async (id: string, data?: Omit<Availability, "id" | "confirmed" | "confirmedAt" | "confirmedByuserId">) => {
         const user = await currentUser();
         if (!user) throw new Error("User not found");
-
-        const roles = user.roles;
-        if (!roles) throw new Error("User not found");
-
-        const isAdmin = roles.includes(UserRole.ADMIN);
+        
+        const canUpdateAny = await permissionsChecker([PermissionName.UPDATE_ANY_AVAILABILITY]);
 
         const availability = await db.availability.findUnique({ where: { id }, select: { userId: true } });
         if (!availability) throw new Error("Availability not found");
 
         // Check if the userId is the same as the current user
-        if (availability.userId !== user.id && !isAdmin) throw new Error("Unauthorized");
+        if (availability.userId !== user.id && !canUpdateAny) throw new Error("Unauthorized");
 
         const finalData = { ...data }
 
@@ -200,6 +178,5 @@ export const updateAvailability = protectedServerAction(
 
         return updatedAvailability;
     }, {
-    allowedRoles: [UserRole.MEMBER, UserRole.ADMIN],
-    requireAll: false
+    requiredPermissions: [PermissionName.UPDATE_OWN_AVAILABILITY]
 });

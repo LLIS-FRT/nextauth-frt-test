@@ -1,8 +1,8 @@
 "use server";
 
-import { currentUser, protectedServerAction } from "@/lib/auth";
+import { currentUser, permissionsChecker, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Report as ReportTypePrisma, UserRole } from "@prisma/client";
+import { PermissionName, Report as ReportTypePrisma, UserRole_ } from "@prisma/client";
 import { Report, AbcdeSchema, SamplerSchema, FirstResponders, MissionInfo, PatientInfo, GetReportsProps, GetReportsResponse, CreateReportResponse } from "./types";
 
 const reportHasUser = (report: ReportTypePrisma, userId: string) => {
@@ -36,12 +36,30 @@ export const generateMissionNumber = async () => {
     return Number(finalString);
 }
 
+const parseJsonField = (field: any) => {
+    if (typeof field === 'string' && field.trim() !== '') {
+        try {
+            return JSON.parse(field);
+        } catch (e) {
+            console.error(`Error parsing JSON for field: ${field}`, e);
+            return {}; // Return an empty object if parsing fails
+        }
+    }
+    return field; // If already an object, return as-is
+};
+
 const convertPrismaReportToReport = (report: ReportTypePrisma): Report => {
-    const abcdeSchema: AbcdeSchema = JSON.parse(JSON.stringify(report.abcdeSchema));
-    const samplerSchema: SamplerSchema = JSON.parse(JSON.stringify(report.samplerSchema));
-    const firstResponders: FirstResponders = JSON.parse(JSON.stringify(report.firstResponders));
-    const patientInfo: PatientInfo = JSON.parse(JSON.stringify(report.patientInfo));
-    const missionInfo: MissionInfo = JSON.parse(JSON.stringify(report.missionInfo));
+    const reportAbcdeSchema = report.abcdeSchema;
+    const reportSamplerSchema = report.samplerSchema;
+    const reportFirstResponders = report.firstResponders;
+    const reportPatientInfo = report.patientInfo;
+    const reportMissionInfo = report.missionInfo;
+
+    const abcdeSchema: AbcdeSchema = parseJsonField(reportAbcdeSchema);
+    const samplerSchema: SamplerSchema = parseJsonField(reportSamplerSchema);
+    const firstResponders: FirstResponders = parseJsonField(reportFirstResponders);
+    const patientInfo: PatientInfo = parseJsonField(reportPatientInfo);
+    const missionInfo: MissionInfo = parseJsonField(reportMissionInfo);
 
     const data = {
         id: report.id,
@@ -64,10 +82,10 @@ const convertPrismaReportToReport = (report: ReportTypePrisma): Report => {
 export const getReports = protectedServerAction(
     async ({ missionNumber }: GetReportsProps): Promise<GetReportsResponse> => {
         const user = await currentUser();
-        if (!user || !user.roles) throw new Error("User not found");
-        const { roles: currentUserRoles, id: currentUserId } = user;
-
-        const isAdmin = currentUserRoles.includes(UserRole.ADMIN);
+        if (!user) throw new Error("User not found");
+        const { id: currentUserId } = user;
+        
+        const canViewAny = await permissionsChecker([PermissionName.VIEW_ANY_REPORT]);
 
         // If mission number is provided, fetch the specific report
         if (missionNumber) {
@@ -81,7 +99,7 @@ export const getReports = protectedServerAction(
             const parsedReport = convertPrismaReportToReport(report);
 
             // Admins can access any report; other users need to be associated with the report
-            if (isAdmin || reportHasUser(report, currentUserId)) {
+            if (canViewAny || reportHasUser(report, currentUserId)) {
                 return { reports: [parsedReport] };
             }
 
@@ -92,7 +110,7 @@ export const getReports = protectedServerAction(
             if (!reports || reports.length === 0) throw new Error("No reports found");
 
             // Admins can see all reports; others only see those relevant to them
-            const filteredReports = isAdmin
+            const filteredReports = canViewAny
                 ? reports
                 : reports.filter((report) => reportHasUser(report, currentUserId));
 
@@ -101,20 +119,17 @@ export const getReports = protectedServerAction(
             const parsedReports = filteredReports.map(convertPrismaReportToReport);
             return { reports: parsedReports };
         }
-    },
-    {
-        allowedRoles: [UserRole.ADMIN, UserRole.MEMBER],
-        requireAll: false
-    }
-);
+    }, {
+    requiredPermissions: [PermissionName.VIEW_OWN_REPORT]
+});
+
 export const createReport = protectedServerAction(
     async ({ abcdeSchema, firstResponders, missionInfo, patientInfo, samplerSchema, }: Omit<Report, "id" | "createdById" | "createdAt" | "updatedAt" | "archived" | "resolved" | "missionNumber">): Promise<CreateReportResponse> => {
         const user = await currentUser();
         if (!user) throw new Error("User not found");
-        const currentUserRoles = user.roles;
-        if (!currentUserRoles) throw new Error("User not found");
         const currentUserId = user.id;
-        const isAdmin = currentUserRoles.includes(UserRole.ADMIN);
+
+        const canCreateAny = await permissionsChecker([PermissionName.CREATE_ANY_REPORT]);
 
         // We start by generating the mission number
         const missionNumber = await generateMissionNumber();
@@ -128,7 +143,7 @@ export const createReport = protectedServerAction(
         // Check if the currentUserId is in the firstResponders array
         const existsInFirstResponders = firstResponders?.firstResponders.some((firstResponder) => firstResponder.id === currentUserId);
 
-        if (!existsInFirstResponders && !isAdmin) {
+        if (!existsInFirstResponders && !canCreateAny) {
             throw new Error("Unauthorized");
         } else {
 
@@ -153,6 +168,5 @@ export const createReport = protectedServerAction(
             return { report: parsedReport, };
         }
     }, {
-    allowedRoles: [UserRole.ADMIN, UserRole.MEMBER], // Allow admins and teachers
-    requireAll: false // Only one of the roles is required
+    requiredPermissions: [PermissionName.CREATE_OWN_REPORT]
 })

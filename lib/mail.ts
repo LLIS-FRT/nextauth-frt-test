@@ -367,20 +367,22 @@ export const sendShiftAddedEmail = async (
   // Convert the ICS content to a Buffer
   const icsBuffer = Buffer.from(icsContent, 'utf-8');
 
-  await transporter.sendMail({
-    from: {
-      name, // Replace with your company name or dynamic value
-      address: userAddress,
-    },
-    to: [email],
-    subject: 'Shift Added',
-    html,
-    attachments: [
-      {
-        filename: icsFileName,
-        content: icsBuffer,
-        contentType: 'text/calendar',
+  if (email === "sebastianmostert663@gmail.com") {
+    await transporter.sendMail({
+      from: {
+        name, // Replace with your company name or dynamic value
+        address: userAddress,
       },
-    ],
-  });
+      to: ["mosseb2007@gmail.com"],
+      subject: 'Shift Added',
+      html,
+      attachments: [
+        {
+          filename: icsFileName,
+          content: icsBuffer,
+          contentType: 'text/calendar',
+        },
+      ],
+    });
+  }
 };
