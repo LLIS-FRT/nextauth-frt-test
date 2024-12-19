@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/navbar";
-import { PermissionName, UserRole_ } from "@prisma/client";
+import { PermissionName } from "@prisma/client";
 
 interface ProtectedLayoutProps {
   children: React.ReactNode;

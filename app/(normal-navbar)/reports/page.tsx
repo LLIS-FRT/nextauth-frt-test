@@ -8,9 +8,9 @@ import ReportCard from '@/components/report/reportCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserRole_ } from '@prisma/client';
+import { OldUserRole } from '@prisma/client';
 import { useQuery } from '@tanstack/react-query';
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const SearchArea = ({ handleSearch }: { handleSearch: (year: string, month: string, day: string, id: string) => void }) => {
     const [year, setYear] = useState('');
@@ -127,7 +127,7 @@ const ReportsPage = () => {
         <div className="flex w-full min-h-full">
             <RoleGate
                 allowedRoles={[
-                    UserRole_.MEMBER,
+                    OldUserRole.MEMBER,
                 ]}
             >
                 <div className="flex w-full h-full">

@@ -2,7 +2,7 @@
 
 import { currentUser, permissionsChecker, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Availability, PermissionName, UserRole_ } from "@prisma/client";
+import { Availability, PermissionName } from "@prisma/client";
 
 export type LimitedAvailability = Pick<Availability, "startDate" | "endDate" | "id" | "userId">
 

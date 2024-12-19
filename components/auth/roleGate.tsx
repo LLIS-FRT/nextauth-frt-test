@@ -1,12 +1,12 @@
 "use client";
 
 import { useCurrentRoles } from "@/hooks/useCurrentRoles";
-import { UserRole_ } from "@prisma/client";
+import { OldUserRole } from "@prisma/client";
 import { FormError } from "@/components/formError";
 
 interface RoleGateProps {
     children: React.ReactNode;
-    allowedRoles: UserRole_[];
+    allowedRoles: OldUserRole[];
     showMessage?: boolean;
     message?: string;
     requireAll?: boolean; // A param that is true if the user needs all of the allowed roles to view the content

@@ -2,7 +2,7 @@
 
 import { currentUser, permissionsChecker, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PermissionName, User, UserRole_ } from "@prisma/client";
+import { PermissionName, User } from "@prisma/client";
 
 interface GetUserResponse {
     user: Pick<User, "firstName" | "lastName" | "email" | "IAM" | "id"> | undefined;

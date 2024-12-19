@@ -1,9 +1,11 @@
+Major quirks:
+  - After logging in it doesnt always show the data and the user has to refresh the page
+
+
 Minor quirks:
   - We need to make a page for admins to validate availabilities
   - We need to make a page for admins to create shift (with less than the minimum amount of users)
   - Add functionality for users to request to be added to a shift that isn't full yet
-  - After logging in it doesnt always show the data and the user has to refresh the page
-
 
 
 BIG CHANGES

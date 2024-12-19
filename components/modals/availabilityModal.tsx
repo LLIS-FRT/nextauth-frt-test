@@ -5,7 +5,7 @@ import { AvailabilityEvent } from '../CustCalendar/types';
 import { Dialog, DialogOverlay, DialogContent, DialogTitle, DialogDescription, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Availability, UserRole_ } from '@prisma/client';
+import { Availability, OldUserRole } from '@prisma/client';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { getAvailabilities } from '@/actions/data/availability';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -65,7 +65,7 @@ export const AvailabilityModal = ({ modalOpen, setModalOpen, selectedEvent, relo
 
   const ButtonList = () => {
     const isCurrentUser = availability?.userId === currentUser?.id;
-    const isAdmin = currentUser?.roles?.includes(UserRole_.ADMIN);
+    const isAdmin = currentUser?.roles?.includes(OldUserRole.ADMIN);
 
     if (!reload) throw new Error("reload is not defined");
 

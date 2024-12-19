@@ -1,5 +1,5 @@
 import NextAuth from "next-auth" // ADD type before DefaultSession
-import { Permission, UserRole, UserRole_ } from "@prisma/client"
+import { Permission, Role, OldUserRole } from "@prisma/client"
 import authConfig from "./auth.config"
 
 import { db } from "@/lib/db"
@@ -24,8 +24,8 @@ declare module "next-auth/jwt" {
     interface JWT {
         /** OpenID ID Token */
         user: {
-            roles?: UserRole_[];
-            userRoles?: UserRole[];
+            roles?: OldUserRole[];
+            userRoles?: Role[];
             permissions?: Permission[];
             isTwoFactorEnabled?: boolean;
             isOAuth: boolean;
@@ -108,7 +108,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 const lastActiveAt = new Date();
                 const existingAccount = await getAccountByUserId(existingUser.id);
 
-                const userRoles = existingUser.UserRoles;
+                const userRoles = existingUser.userRoles;
                 const permissions = userRoles.map((userRole) => userRole.permissions).flat();
                 // Remove duplicates
                 const uniquePermissions = permissions.filter((permission, index) => permissions.indexOf(permission) === index);

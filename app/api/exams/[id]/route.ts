@@ -2,7 +2,7 @@ import { protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { untis } from "@/lib/untis";
 import { getClasses } from "@/utils/classes";
-import { PermissionName, User, UserRole_ } from "@prisma/client";
+import { PermissionName, User, OldUserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 const getID_IAM = (req: NextRequest): { IAM: boolean, idOrIAM: string } => {
@@ -75,7 +75,7 @@ export const GET = protectedRoute(
             }
         }
 
-        const rolesThatCanSeeAllExams: UserRole_[] = [UserRole_.ADMIN];
+        const rolesThatCanSeeAllExams: OldUserRole[] = [OldUserRole.ADMIN];
 
         // To access ALL exams user needs to be an admin
         if (classID === null && !validUser.roles.some(role => rolesThatCanSeeAllExams.includes(role))) {

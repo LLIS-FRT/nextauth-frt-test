@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole_ } from '@prisma/client';
+import { OldUserRole } from '@prisma/client';
 import { useEffect, useState } from 'react';
 import moment from 'moment'; // Import if you still plan on using moment
 import { EventBgColor, EventType, OverlapEvent, ShiftEvent } from '@/components/CustCalendar/types';
@@ -114,7 +114,7 @@ const ShiftManagerPage = () => {
   );
 }
 
-export default ProtectedPageClient(ShiftManagerPage, { allowedRoles: [UserRole_.ADMIN], requireAll: false });
+export default ProtectedPageClient(ShiftManagerPage, { allowedRoles: [OldUserRole.ADMIN], requireAll: false });
 
 const getOverlapAvailabilities = (availabilities: LimitedAvailability[], shifts: LimitedShift[]): EventType[] => {
   const overlaps: EventType[] = [];

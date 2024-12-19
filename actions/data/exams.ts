@@ -4,7 +4,7 @@ import { currentUser, permissionsChecker, protectedServerAction } from "@/lib/au
 import { db } from "@/lib/db";
 import { untis } from "@/lib/untis";
 import { getClasses } from "@/utils/classes";
-import { PermissionName, UserRole_ } from "@prisma/client";
+import { PermissionName } from "@prisma/client";
 import { Exam } from "webuntis";
 
 interface GetExamsProps {

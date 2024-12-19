@@ -1,8 +1,8 @@
 "use server";
 
-import { currentUser, protectedServerAction } from "@/lib/auth";
+import { protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PermissionName, Team, UserRole_ } from "@prisma/client";
+import { PermissionName, Team } from "@prisma/client";
 
 export type LimitedTeam = Pick<Team, "id" | "name" | "possiblePositions" | "minUsers" | "maxUsers">
 

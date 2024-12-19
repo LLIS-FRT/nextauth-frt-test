@@ -2,7 +2,7 @@
 
 import { currentUser, permissionsChecker, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PermissionName, Report as ReportTypePrisma, UserRole_ } from "@prisma/client";
+import { PermissionName, Report as ReportTypePrisma } from "@prisma/client";
 import { Report, AbcdeSchema, SamplerSchema, FirstResponders, MissionInfo, PatientInfo, GetReportsProps, GetReportsResponse, CreateReportResponse } from "./types";
 
 const reportHasUser = (report: ReportTypePrisma, userId: string) => {

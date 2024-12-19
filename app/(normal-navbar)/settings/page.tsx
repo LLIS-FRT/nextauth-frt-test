@@ -28,12 +28,12 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { FormSuccess } from "@/components/formSuccess";
 import { FormError } from "@/components/formError";
 import { MultiSelector, MultiSelectorContent, MultiSelectorInput, MultiSelectorItem, MultiSelectorList, MultiSelectorTrigger } from "@/components/ui/multiSelector";
-import { UserRole_ } from "@prisma/client";
+import { OldUserRole } from "@prisma/client";
 import { Switch } from "@/components/ui/switch";
 import { RoleGate } from "@/components/auth/roleGate";
 import PasswordField from "@/components/auth/PasswordField";
 
-const formatRole = (role: UserRole_) => {
+const formatRole = (role: OldUserRole) => {
     // Convert the role to a string
     let formattedRole = role.toString();
 
@@ -233,7 +233,7 @@ const SettingsPage = () => {
                                     </>
                                 )}
                                 <RoleGate
-                                    allowedRoles={[UserRole_.ADMIN]}
+                                    allowedRoles={[OldUserRole.ADMIN]}
                                     requireAll={false}
                                     showMessage
                                 >
@@ -254,7 +254,7 @@ const SettingsPage = () => {
                                                     </MultiSelectorTrigger>
                                                     <MultiSelectorContent>
                                                         <MultiSelectorList>
-                                                            {Object.values(UserRole_).map((role) => (
+                                                            {Object.values(OldUserRole).map((role) => (
                                                                 <MultiSelectorItem key={role} value={role}>{formatRole(role)}</MultiSelectorItem>
                                                             ))}
                                                         </MultiSelectorList>

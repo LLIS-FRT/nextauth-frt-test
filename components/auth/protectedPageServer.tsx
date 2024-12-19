@@ -1,11 +1,11 @@
 "use server";
 import React from 'react';
-import { UserRole_ } from '@prisma/client';
+import { OldUserRole } from '@prisma/client';
 import { useCurrentRoles } from '@/hooks/useCurrentRoles';
 import { currentRoles } from '@/lib/auth';
 
 interface ProtectedPageServerProps {
-    allowedRoles: UserRole_[];
+    allowedRoles: OldUserRole[];
     requireAll?: boolean;
     Fallback?: React.ComponentType<any>; // Allow Fallback to receive any props
     fallbackProps?: Record<string, any>; // Props to pass to Fallback

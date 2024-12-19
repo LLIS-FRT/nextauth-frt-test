@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { INACTIVE_EXPIRATION_MS } from "@/constants";
-import { PermissionName, UserRole_ } from "@prisma/client";
+import { PermissionName, OldUserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 export const currentUser = async () => {
@@ -34,7 +34,7 @@ export const currentPermissions = async () => {
 
 interface ProtectedRouteOptions {
     // All the roles that are allowed to access the route
-    allowedRoles?: UserRole_[],
+    allowedRoles?: OldUserRole[],
     requiredPermissions?: PermissionName[],
 };
 

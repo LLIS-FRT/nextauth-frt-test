@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { UserButton } from "@/components/auth/userButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { NavbarButton } from "./navbarBtn";
-import { PermissionName, UserRole_ } from "@prisma/client";
+import { PermissionName, OldUserRole } from "@prisma/client";
 import { RoleGate } from "@/components/auth/roleGate";
 import { LoginButton } from "@/components/auth/loginButton";
 import { Button } from "@/components/ui/button";

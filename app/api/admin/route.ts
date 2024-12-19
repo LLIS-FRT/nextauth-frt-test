@@ -1,11 +1,11 @@
 import { currentRoles } from "@/lib/auth";
-import { UserRole_ } from "@prisma/client";
+import { OldUserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 export async function GET() {
     const roles = await currentRoles();
 
-    if (roles.includes(UserRole_.ADMIN)) {
+    if (roles.includes(OldUserRole.ADMIN)) {
         return new NextResponse(null, { status: 200 });
     }
 

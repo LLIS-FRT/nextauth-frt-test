@@ -1,6 +1,6 @@
 import { currentRoles, currentUser, permissionsChecker, protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PermissionName, UserRole_ } from "@prisma/client";
+import { PermissionName, OldUserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 const getID = (req: NextRequest) => {

@@ -1,6 +1,6 @@
 import { currentUser, permissionsChecker, protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PermissionName, UserRole_ } from "@prisma/client";
+import { PermissionName, OldUserRole } from "@prisma/client";
 import { JsonValue } from "@prisma/client/runtime/library";
 import { NextRequest, NextResponse } from "next/server";
 

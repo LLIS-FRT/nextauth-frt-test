@@ -3,7 +3,7 @@
 import { currentUser, permissionsChecker, protectedServerAction } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendShiftAddedEmail } from "@/lib/mail";
-import { PermissionName, Shift, UserRole_ } from "@prisma/client";
+import { PermissionName, Shift } from "@prisma/client";
 
 export type LimitedShift = {
     startDate: Date;

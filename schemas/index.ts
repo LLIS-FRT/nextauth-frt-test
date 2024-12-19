@@ -1,12 +1,12 @@
-import { UserRole_ } from "@prisma/client";
+import { OldUserRole } from "@prisma/client";
 import * as z from "zod";
 
 export const SettingsSchema = z.object({
     firstName: z.optional(z.string()),
     lastName: z.optional(z.string()),
     isTwoFactorEnabled: z.optional(z.boolean()),
-    // An array of the UserRole_ enum
-    roles: z.array(z.nativeEnum(UserRole_)),
+    // An array of the OldUserRole enum
+    roles: z.array(z.nativeEnum(OldUserRole)),
     email: z.optional(z.string()),
     password: z.optional(z.string()),
     newPassword: z.optional(z.string()),

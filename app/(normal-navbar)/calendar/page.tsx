@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { RoleGate } from "@/components/auth/roleGate";
 import CustomCalendar from "@/components/CustCalendar/Calendar";
 import { AvailabilityEvent, EventBgColor, EventType, ExamEvent, OverlapEvent, ShiftEvent } from "@/components/CustCalendar/types";
-import { Availability, UserRole_ } from "@prisma/client";
+import { Availability, OldUserRole } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import moment from 'moment';
@@ -403,8 +403,8 @@ const CalendarPage = () => {
     <div className="bg-white h-full w-full">
       <RoleGate
         allowedRoles={[
-          UserRole_.ADMIN,
-          UserRole_.MEMBER,
+          OldUserRole.ADMIN,
+          OldUserRole.MEMBER,
         ]}
       >
         <div className="h-full w-full items-center bg-white justify-center no-scrollbar">

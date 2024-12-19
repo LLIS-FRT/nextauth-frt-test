@@ -1,6 +1,6 @@
 import { protectedRoute } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PermissionName, UserRole_ } from "@prisma/client";
+import { PermissionName, OldUserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 // GET all availabilities
